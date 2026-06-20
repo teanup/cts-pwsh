@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Classes describing types returned by cmdlets in this module
+Classes describing simplified CTS API types for this module
 #>
 
 class Stop {
@@ -11,7 +11,7 @@ class Stop {
   Stop([CtsAnnotatedStopPointStructure]$CtsStop) {
     $this.Id = $CtsStop.StopPointRef
     $this.Name = $CtsStop.StopName
-    $this.Lines = $CtsStop.Lines.ForEach({ [Line]$_ })
+    $this.Lines = [Line[]]$CtsStop.Lines
   }
 }
 

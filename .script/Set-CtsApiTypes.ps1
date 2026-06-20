@@ -19,23 +19,49 @@ function Get-CtsApiPropertyType {
   param(
     [PSCustomObject]$InputObject
   )
-  begin {
-    $DefaultTypes = @{
-      string  = 'String'
-      integer = 'Int'
-      number  = 'Int'
-      boolean = 'Bool'
-    }
-  }
   process {
     if ($InputObject.type) {
-      if ($InputObject.type -eq 'array') {
-        return "$(Get-CtsApiPropertyType -InputObject $InputObject.items)[]"
-      } elseif ($InputObject.type -in $DefaultTypes.Keys) {
-        return $DefaultTypes.($InputObject.type)
-      } else {
-        Write-Error -Message "Unknown property type: $_"
-        return
+      switch ($InputObject.type) {
+        'string' {
+          switch ($InputObject.format) {
+            'date-time' {
+              return 'DateTime'
+            }
+            default {
+              return 'String'
+            }
+          }
+        }
+        'integer' {
+          switch ($InputObject.format) {
+            'int32' {
+              return 'Int'
+            }
+            default {
+              return 'Int'
+            }
+          }
+        }
+        'number' {
+          switch ($InputObject.format) {
+            'double' {
+              return 'Double'
+            }
+            default {
+              return 'Double'
+            }
+          }
+        }
+        'boolean' {
+          return 'Bool'
+        }
+        'array' {
+          return "$(Get-CtsApiPropertyType -InputObject $InputObject.items)[]"
+        }
+        default {
+          Write-Error -Message "Unknown property type: $_"
+          return
+        }
       }
     } elseif ($InputObject.'$ref') {
       if ($InputObject.'$ref' -match '#/components/schemas/(?<type>\w+)') {
@@ -110,7 +136,7 @@ $TypeNameList = @()
 
 if ($TypeNameList) {
   $TypeNameText = $TypeNameList -join "',`n  '"
-  Add-Content -Path $Path -Value "`n`$Script:ExportTypes = @(`n  '$TypeNameText'`n)"
+  Add-Content -Path $Path -Value "`n`$Script:ExportTypes += (`n  '$TypeNameText'`n)"
 }
 
 Write-Host -Object "Defined $($TypeNameList.Count) CTS API types in: $Path"

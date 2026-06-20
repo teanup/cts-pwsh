@@ -16,11 +16,11 @@ function Invoke-CtsApi {
       throw 'Provide an API token to use the CTS API'
     }
 
-    $Response = Invoke-RestMethod -Uri ($BaseUrl + $Path) -Body $Query -Method Get -Headers @{
+    $Response = Invoke-RestMethod -Uri ($BaseUrl + $Path) -Body $Query -Headers @{
       Authorization = "Basic $(
         [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($Token + ':'))
       )"
-    }
+    } -Method Get
 
     try {
       $CtsError = [CtsError]$Response

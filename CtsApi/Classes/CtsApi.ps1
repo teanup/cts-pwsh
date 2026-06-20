@@ -29,8 +29,8 @@ class CtsAnnotatedStopPointStructure {
 class CtsCTSGeneralMessage {
   [String]$ImpactedGroupOfLinesRef
   [String[]]$ImpactedLineRef
-  [String]$ImpactEndDateTime
-  [String]$ImpactStartDateTime
+  [DateTime]$ImpactEndDateTime
+  [DateTime]$ImpactStartDateTime
   [CtsMessage[]]$Message
   [CtsPriority]$Priority
   [Bool]$SendUpdatedNotificationsToCustomers
@@ -44,8 +44,8 @@ class CtsError {
 class CtsEstimatedCalls {
   [String]$DestinationName
   [String]$DestinationShortName
-  [String]$ExpectedArrivalTime
-  [String]$ExpectedDepartureTime
+  [DateTime]$ExpectedArrivalTime
+  [DateTime]$ExpectedDepartureTime
   [CtsExtensionEstimatedCalls]$Extension
   [String]$StopPointName
   [String]$StopPointRef
@@ -54,15 +54,15 @@ class CtsEstimatedCalls {
 
 class CtsEstimatedTimetableDelivery {
   [CtsEstimatedTimetableVersionFrame[]]$EstimatedJourneyVersionFrame
-  [String]$ResponseTimestamp
+  [DateTime]$ResponseTimestamp
   [String]$ShortestPossibleCycle
-  [String]$ValidUntil
+  [DateTime]$ValidUntil
   [String]$version
 }
 
 class CtsEstimatedTimetableVersionFrame {
   [CtsEstimatedVehicleJourney[]]$EstimatedVehicleJourney
-  [String]$RecordedAtTime
+  [DateTime]$RecordedAtTime
 }
 
 class CtsEstimatedVehicleJourney {
@@ -79,9 +79,8 @@ class CtsExtensionAnnotatedLineStructure {
   [String]$RouteColor
   [String]$RouteTextColor
   [CtsRouteModeEnumeration]$RouteType
-  # MISSING IN DOCUMENTATION
-  [Bool]$LineHidden
-  [String]$InformationPage
+  [Bool]$LineHidden # Missing in OpenAPI docs
+  [String]$InformationPage # Missing in OpenAPI docs
 }
 
 class CtsExtensionAnnotatedStopPointStructure {
@@ -113,7 +112,7 @@ class CtsFramedVehicleJourneyRef {
 
 class CtsGeneralMessageDelivery {
   [CtsInfoMessage[]]$InfoMessage
-  [String]$ResponseTimestamp
+  [DateTime]$ResponseTimestamp
   [String]$ShortestPossibleCycle
   [String]$version
 }
@@ -124,8 +123,8 @@ class CtsInfoMessage {
   [String]$InfoChannelRef
   [String]$InfoMessageIdentifier
   [String]$ItemIdentifier
-  [String]$RecordedAtTime
-  [String]$ValidUntilTime
+  [DateTime]$RecordedAtTime
+  [DateTime]$ValidUntilTime
 }
 
 enum CtsLang {
@@ -137,22 +136,22 @@ enum CtsLang {
 class CtsLinesDelivery {
   [CtsAnnotatedLineStructure[]]$AnnotatedLineRef
   [String]$RequestMessageRef
-  [String]$ResponseTimestamp
+  [DateTime]$ResponseTimestamp
   [String]$ShortestPossibleCycle
-  [String]$ValidUntil
+  [DateTime]$ValidUntil
 }
 
 class CtsLineTimetableFile {
-  [String]$EndValidity
+  [DateTime]$EndValidity
   [String]$LineName
   [String]$LineRef
-  [String]$StartValidity
+  [DateTime]$StartValidity
   [String]$Url
 }
 
 class CtsLocation {
-  [Int]$Latitude
-  [Int]$Longitude
+  [Double]$Latitude
+  [Double]$Longitude
 }
 
 class CtsMessage {
@@ -166,8 +165,8 @@ class CtsMessageText {
 }
 
 class CtsMonitoredCall {
-  [String]$ExpectedArrivalTime
-  [String]$ExpectedDepartureTime
+  [DateTime]$ExpectedArrivalTime
+  [DateTime]$ExpectedDepartureTime
   [CtsExtensionMonitoredCall]$Extension
   [Int]$Order
   [String]$StopCode
@@ -177,7 +176,7 @@ class CtsMonitoredCall {
 class CtsMonitoredStopVisit {
   [CtsMonitoredVehicleJourney]$MonitoredVehicleJourney
   [String]$MonitoringRef
-  [String]$RecordedAtTime
+  [DateTime]$RecordedAtTime
   [String]$StopCode
 }
 
@@ -196,8 +195,8 @@ class CtsMonitoredVehicleJourney {
 }
 
 class CtsOnwardCall {
-  [String]$ExpectedArrivalTime
-  [String]$ExpectedDepartureTime
+  [DateTime]$ExpectedArrivalTime
+  [DateTime]$ExpectedDepartureTime
   [Int]$Order
   [String]$StopCode
   [String]$StopPointName
@@ -209,9 +208,9 @@ class CtsParkAndRide {
   [String]$AccessInformation_FR
   [Int]$AvailableParkingSpots
   [String]$Designation
-  [String]$LastUpdate
-  [Int]$Latitude
-  [Int]$Longitude
+  [DateTime]$LastUpdate
+  [Double]$Latitude
+  [Double]$Longitude
   [Bool]$Open
   [Int]$TotalParkingSpots
   [Int]$Variation
@@ -281,8 +280,8 @@ class CtsRetailOutlet {
   [String]$Address
   [Bool]$BadgeoTopUp
   [String]$Designation
-  [Int]$Latitude
-  [Int]$Longitude
+  [Double]$Latitude
+  [Double]$Longitude
   [String]$OpeningTimes
   [String]$RetailOutletType
   [Int]$RetailOutletTypeId
@@ -305,7 +304,7 @@ class CtsServiceDelivery {
   [CtsEstimatedTimetableDelivery[]]$EstimatedTimetableDelivery
   [CtsGeneralMessageDelivery[]]$GeneralMessageDelivery
   [String]$RequestMessageRef
-  [String]$ResponseTimestamp
+  [DateTime]$ResponseTimestamp
   [CtsStopMonitoringDelivery[]]$StopMonitoringDelivery
   [CtsVehicleMonitoringDelivery[]]$VehicleMonitoringDelivery
 }
@@ -319,30 +318,30 @@ enum CtsServiceType {
 class CtsStopMonitoringDelivery {
   [CtsMonitoredStopVisit[]]$MonitoredStopVisit
   [String[]]$MonitoringRef
-  [String]$ResponseTimestamp
+  [DateTime]$ResponseTimestamp
   [String]$ShortestPossibleCycle
-  [String]$ValidUntil
+  [DateTime]$ValidUntil
   [String]$version
 }
 
 class CtsStopPointsDelivery {
   [CtsAnnotatedStopPointStructure[]]$AnnotatedStopPointRef
   [String]$RequestMessageRef
-  [String]$ResponseTimestamp
+  [DateTime]$ResponseTimestamp
 }
 
 class CtsStopTimetableFile {
   [String]$DestinationName
-  [String]$EndValidity
+  [DateTime]$EndValidity
   [String]$LineRef
-  [String]$StartValidity
+  [DateTime]$StartValidity
   [String]$StopCode
   [String]$Url
 }
 
 class CtsVehicleActivity {
   [CtsMonitoredVehicleJourney]$MonitoredVehicleJourney
-  [String]$RecordedAtTime
+  [DateTime]$RecordedAtTime
 }
 
 enum CtsVehicleModeEnumeration {
@@ -353,9 +352,9 @@ enum CtsVehicleModeEnumeration {
 }
 
 class CtsVehicleMonitoringDelivery {
-  [String]$ResponseTimestamp
+  [DateTime]$ResponseTimestamp
   [String]$ShortestPossibleCycle
-  [String]$ValidUntil
+  [DateTime]$ValidUntil
   [CtsVehicleActivity[]]$VehicleActivity
 }
 
@@ -367,8 +366,8 @@ class CtsVelhop {
   [Int]$AvailableFreeBikeSpots
   [Bool]$BankCard
   [String]$Designation
-  [Int]$Latitude
-  [Int]$Longitude
+  [Double]$Latitude
+  [Double]$Longitude
   [CtsServiceType]$ServiceType
   [Int]$StationID
   [Int]$TotalBikeSpots
@@ -379,8 +378,8 @@ class CtsVeloparc {
   [String]$AccessInformation_EN
   [String]$AccessInformation_FR
   [String]$Designation
-  [Int]$Latitude
-  [Int]$Longitude
+  [Double]$Latitude
+  [Double]$Longitude
 }
 
 $Script:ExportTypes += (
