@@ -26,7 +26,7 @@
   Copyright         = '(c) peanut. All rights reserved.'
 
   # Description of the functionality provided by this module
-  Description       = 'Display Strasbourg public transport arrivals in PowerShell'
+  Description       = 'Display Strasbourg public transport departures in PowerShell'
 
   # Minimum version of the PowerShell engine required by this module
   PowerShellVersion = '7.4'

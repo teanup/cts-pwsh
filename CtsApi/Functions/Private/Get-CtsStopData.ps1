@@ -15,11 +15,10 @@ function Get-CtsStopData {
 
     # Use runspace cache if available
     if (-not $Force -and $Script:StopCache -and $Script:StopCache -is [CtsStopPointsDelivery]) {
-      $StopCacheTimestamp = [DateTime]$Script:StopCache.ResponseTimestamp
-      if ($StopCacheTimestamp -lt ([DateTime]::Now - $Script:StopCacheValidFor)) {
-        $IsStopCacheExpired = $true
-      } else {
+      if (([DateTime]::Now - $Script:StopCache.ResponseTimestamp) -le $Script:StopCacheValidFor) {
         return $Script:StopCache.AnnotatedStopPointRef
+      } else {
+        $IsStopCacheExpired = $true
       }
     }
 
@@ -27,8 +26,7 @@ function Get-CtsStopData {
     if (-not $Force -and (Test-Path -Path $StopCachePath)) {
       try {
         [CtsStopPointsDelivery]$Script:StopCache = Get-Content -Path $StopCachePath -Raw | ConvertFrom-Json
-        $StopCacheTimestamp = [DateTime]$Script:StopCache.ResponseTimestamp
-        if ($StopCacheTimestamp -lt ([DateTime]::Now - $Script:StopCacheValidFor)) {
+        if (([DateTime]::Now - $Script:StopCache.ResponseTimestamp) -gt $Script:StopCacheValidFor) {
           Write-Verbose -Message 'Stop cache has expired'
           $IsStopCacheExpired = $true
         }
@@ -41,8 +39,11 @@ function Get-CtsStopData {
     }
 
     if ($Force -or $IsStopCacheExpired) {
+      # Fall back to CTS API
       try {
-        $Response = Invoke-CtsApi -Path 'siri/2.0/stoppoints-discovery' -Query @{ IncludeLinesDestinations = $true }
+        $Response = Invoke-CtsApi -Path 'siri/2.0/stoppoints-discovery' -Query @{
+          IncludeLinesDestinations = $true
+        }
         [CtsStopPointsDelivery]$Script:StopCache = $Response.StopPointsDelivery
 
         if (-not $NoCacheFile) {
