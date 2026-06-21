@@ -6,7 +6,10 @@ function Get-CtsStopData {
   [CmdletBinding()]
   [OutputType([CtsAnnotatedStopPointStructure])]
   param(
+    [Parameter(Mandatory = $false)]
     [Switch]$Force,
+
+    [Parameter(Mandatory = $false)]
     [Switch]$NoCacheFile
   )
   process {

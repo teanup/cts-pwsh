@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Imports classes, functions and defines module-scope variables
+Imports classes & functions and defines module-scope variables
 #>
 
 $Script:ExportTypes = [String[]]@()

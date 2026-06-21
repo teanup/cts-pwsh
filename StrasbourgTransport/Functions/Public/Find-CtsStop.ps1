@@ -46,7 +46,7 @@ function Find-CtsStop {
                     }
                   }
                 }
-                if ($Destinations.Count -gt 0) { 
+                if ($Destinations.Count -gt 0) {
                   return [Line]::new($CtsLine, $Destinations)
                 }
               }

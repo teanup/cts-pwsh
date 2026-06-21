@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Classes describing simplified CTS API types for this module
+Classes describing simplified types for this module
 #>
 
 class Departure {

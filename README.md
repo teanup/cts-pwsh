@@ -1,3 +1,3 @@
-# CtsApi (PowerShell module)
+# StrasbourgTransport (PowerShell module)
 
 Display Strasbourg public transport departures in PowerShell

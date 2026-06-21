@@ -6,9 +6,16 @@ function Invoke-CtsApi {
   [CmdletBinding()]
   [OutputType([PSCustomObject])]
   param(
-    [Parameter(Mandatory)][String]$Path,
-    [Hashtable]$Query = $null,
+    [Parameter(Mandatory = $true)]
+    [String]$Path,
+
+    [Parameter(Mandatory = $false)]
+    [Hashtable]$Query,
+
+    [Parameter(Mandatory = $false)]
     [String]$Token = $Script:CtsApiToken,
+
+    [Parameter(Mandatory = $false)]
     [String]$BaseUrl = 'https://api.cts-strasbourg.eu/v1/'
   )
   process {

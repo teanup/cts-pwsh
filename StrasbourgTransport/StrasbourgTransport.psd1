@@ -1,11 +1,11 @@
 #
-# Module manifest for module 'CtsApi'
+# Module manifest for module 'StrasbourgTransport'
 #
 
 @{
 
   # Script module or binary module file associated with this manifest.
-  RootModule        = 'CtsApi.psm1'
+  RootModule        = 'StrasbourgTransport.psm1'
 
   # Version number of this module.
   ModuleVersion     = '1.0.0'
@@ -94,19 +94,22 @@
     PSData = @{
 
       # Tags applied to this module. These help with module discovery in online galleries.
-      Tags       = @('PSModule', 'CTS', 'Strasbourg', 'Transport')
+      Tags         = @('PSModule', 'CTS', 'Strasbourg', 'Transport')
 
       # A URL to the license for this module.
-      # LicenseUri = ''
+      LicenseUri   = 'https://github.com/teanup/cts-pwsh/blob/main/LICENSE'
 
       # A URL to the main website for this project.
-      ProjectUri = 'https://github.com/teanup/ctsapi'
+      ProjectUri   = 'https://github.com/teanup/cts-pwsh'
 
       # A URL to an icon representing this module.
       # IconUri = ''
 
       # ReleaseNotes of this module
-      # ReleaseNotes = ''
+      ReleaseNotes = @'
+        1.0.0
+        - Initial release: lookup CTS stops and departures
+'@
 
       # Prerelease string of this module
       # Prerelease = ''
@@ -128,4 +131,3 @@
   # DefaultCommandPrefix = ''
 
 }
-

@@ -6,8 +6,14 @@ function Get-CtsDepartureData {
   [CmdletBinding()]
   [OutputType([CtsMonitoredStopVisit])]
   param(
-    [Parameter(Mandatory)][String]$StopId,
-    [ValidateRange(1, 10)][Int]$MinDepartures = 3,
+    [Parameter(Mandatory = $true)]
+    [String]$StopId,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateRange(1, 10)]
+    [Int]$MinDepartures = 3,
+
+    [Parameter(Mandatory = $false)]
     [Switch]$Force
   )
   process {

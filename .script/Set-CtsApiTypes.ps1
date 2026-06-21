@@ -21,6 +21,7 @@ function Get-CtsApiPropertyType {
   [CmdletBinding()]
   [OutputType([String])]
   param(
+    [Parameter(Mandatory = $true)]
     [PSCustomObject]$InputObject
   )
   process {
