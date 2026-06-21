@@ -4,12 +4,12 @@ Classes describing simplified types for this module
 #>
 
 class Departure {
-  [Stop]$Stop
+  [String]$StopName
   [Line]$Line
   [DepartureTime[]]$Departures
 
   Departure([Stop]$Stop, [Line]$Line, [CtsMonitoredVehicleJourney[]]$CtsDepartures) {
-    $this.Stop = $Stop
+    $this.StopName = $Stop.Name
     $Destination = $CtsDepartures[0].DestinationName
     $this.Line = [Line]::new($Line)
     $this.Line.Destinations = @($Destination)
@@ -57,6 +57,7 @@ class Line {
   [String]$DisplayName
   [String]$Description
   [String[]]$Destinations
+  hidden [Int]$VisibleLength
 
   Line([CtsAnnotatedLineStructure]$CtsLine) {
     $this.Init($CtsLine, $CtsLine.Destinations.DestinationName)
@@ -84,6 +85,8 @@ class Line {
     $Background = $PSStyle.Background.FromRgb('0x' + $CtsLine.Extension.RouteColor)
     $Foreground = $PSStyle.Foreground.FromRgb('0x' + $CtsLine.Extension.RouteTextColor)
     $this.DisplayName = $PSStyle.Bold + $Background + $Foreground + $Text + $PSStyle.Reset
+
+    $this.VisibleLength = $Text.Length + 3 + ($this.Destinations -join ';').Length
   }
 
   hidden Init([Line]$Line, [String[]]$Destinations) {
@@ -91,10 +94,19 @@ class Line {
     $this.DisplayName = $Line.DisplayName
     $this.Description = $Line.Description
     $this.Destinations = $Destinations
+    $this.VisibleLength = $Line.VisibleLength
   }
 
   [String] ToString() {
     return $this.DisplayName + " `u{279C} " + ($this.Destinations -join ';')
+  }
+
+  [String] PadRight([Int]$TotalWidth) {
+    $LineText = [System.Text.StringBuilder]::new($this.ToString())
+    if ($TotalWidth -gt $this.VisibleLength) {
+      $null = $LineText.Append([Char]' ', $TotalWidth - $this.VisibleLength)
+    }
+    return $LineText.ToString()
   }
 }
 
@@ -112,7 +124,7 @@ class DepartureTime {
   }
 
   [String] ToString([DateTime]$ReferenceTime) {
-    $TimeSpan = $ReferenceTime - $this.Time
+    $TimeSpan = $this.Time - $ReferenceTime
     if ($TimeSpan -le [TimeSpan]::Zero) {
       return "`u{21CA} "
     } elseif ($TimeSpan -ge [TimeSpan]::FromHours(1)) {

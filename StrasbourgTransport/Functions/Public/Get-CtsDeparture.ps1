@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Retrieves the next departure at the specified CTS stops
+Retrieves the next departures at the specified CTS stops
 #>
 function Get-CtsDeparture {
   [CmdletBinding(DefaultParameterSetName = 'Filters')]
@@ -45,9 +45,13 @@ function Get-CtsDeparture {
     if ($StopObject.Count -gt $Script:SafeRequestThreshold) {
       if (-not $PSCmdlet.ShouldContinue('Proceed with requests?', "You are about to request departures for $($StopObject.Count) CTS stops. Excessive API usage could be flagged as spam.")) {
         Write-Verbose "Aborted departure requests for $($StopObject.Count) stops"
+        return
       }
+    } elseif ($StopObject.Count -eq 0) {
+      return
     }
 
+    $Now = [DateTime]::Now
     $StopObject | ForEach-Object {
       $CurStop = $_
       $CtsDepartures = Get-CtsDepartureData -StopId $CurStop.Id -MinDepartures ($Count + 1) -Force:$Force
@@ -63,7 +67,7 @@ function Get-CtsDeparture {
 
           # Filter expired departures
           $Departures.Departures = $Departures.Departures | Where-Object {
-            ([DateTime]::Now - $_.Time) -le [TimeSpan]::FromSeconds(10)
+            ($Now - $_.Time) -le [TimeSpan]::FromSeconds(10)
           } | Select-Object -First $Count
 
           return $Departures

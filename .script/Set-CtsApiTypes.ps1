@@ -3,6 +3,7 @@
 Parses the CTS API documentation to define compatible PowerShell types
 #>
 [CmdletBinding()]
+[OutputType([Void])]
 param(
   [Parameter(Mandatory = $false)]
   [String]$Path,
