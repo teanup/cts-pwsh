@@ -14,17 +14,6 @@ class Departure {
     $this.Line = [Line]::new($Line)
     $this.Line.Destinations = @($Destination)
     $this.Departures = [DepartureTime[]]$CtsDepartures.MonitoredCall
-
-    $IsKnowDest = $false
-    foreach ($DestName in $Line.Destinations) {
-      if ($Destination -like "*$DestName*") {
-        $IsKnowDest = $true
-        break
-      }
-    }
-    if (-not $IsKnowDest) {
-      Write-Warning -Message "Unexpected destination '$Destination' for line: $Line"
-    }
   }
 }
 
@@ -49,49 +38,49 @@ class Stop {
 }
 
 class Formatted {
-  hidden [String] _ToString([Bool]$HasParam, [Object]$Param) {
-    if ($HasParam) {
-      return $this.ToString($Param)
+  hidden [String] ToString([Bool]$HasToStringParam, [Object]$ToStringParam) {
+    if ($HasToStringParam) {
+      return $this.ToString($ToStringParam)
     } else {
       return $this.ToString()
     }
   }
 
   [Int] VisibleLength() {
-    return $this._VisibleLength($false, $null)
+    return $this.VisibleLength($false, $null)
   }
 
   [Int] VisibleLength([Object]$ToStringParam) {
-    return $this._VisibleLength($true, $ToStringParam)
+    return $this.VisibleLength($true, $ToStringParam)
   }
 
-  hidden [Int] _VisibleLength([Bool]$HasParam, [Object]$Param) {
-    return $this._VisibleLength($this._ToString($HasParam, $Param))
+  hidden [Int] VisibleLength([Bool]$HasToStringParam, [Object]$ToStringParam) {
+    return $this.VisibleLength($this.ToString($HasToStringParam, $ToStringParam))
   }
 
-  hidden [Int] _VisibleLength([String]$String) {
+  hidden [Int] VisibleLength([String]$String) {
     return ($String -replace '\e\[[\d;]+m').Length
   }
 
   [String] PadLeft([Int]$TotalWidth) {
-    return $this._Pad($TotalWidth, $true, $false, $null)
+    return $this.Pad($TotalWidth, $true, $false, $null)
   }
 
   [String] PadLeft([Int]$TotalWidth, [Object]$ToStringParam) {
-    return $this._Pad($TotalWidth, $true, $true, $ToStringParam)
+    return $this.Pad($TotalWidth, $true, $true, $ToStringParam)
   }
 
   [String] PadRight([Int]$TotalWidth) {
-    return $this._Pad($TotalWidth, $false, $false, $null)
+    return $this.Pad($TotalWidth, $false, $false, $null)
   }
 
   [String] PadRight([Int]$TotalWidth, [Object]$ToStringParam) {
-    return $this._Pad($TotalWidth, $false, $true, $ToStringParam)
+    return $this.Pad($TotalWidth, $false, $true, $ToStringParam)
   }
 
-  hidden [String] _Pad([Int]$TotalWidth, [Bool]$PadLeft, [Bool]$HasParam, [Object]$Param) {
-    $String = $this._ToString($HasParam, $Param)
-    $LenDiff = $TotalWidth - $this._VisibleLength($String)
+  hidden [String] Pad([Int]$TotalWidth, [Bool]$PadLeft, [Bool]$HasToStringParam, [Object]$ToStringParam) {
+    $String = $this.ToString($HasToStringParam, $ToStringParam)
+    $LenDiff = $TotalWidth - $this.VisibleLength($String)
     if ($LenDiff -le 0) {
       return $String
     } elseif ($PadLeft) {
@@ -164,7 +153,7 @@ class DepartureTime : Formatted {
   [String] ToString([DateTime]$ReferenceTime) {
     $TimeSpan = $this.Time - $ReferenceTime
     if ($TimeSpan -le [TimeSpan]::Zero) {
-      return "`u{1F883}`u{1F883}"
+      return $Global:PSStyle.Bold + "`u{2B63}`u{2B63}" + $Global:PSStyle.BoldOff
     }
     $TimeText = '{0}:{1:d2}' -f [Math]::Floor($TimeSpan.TotalMinutes), $TimeSpan.Seconds
     return $this.Format($TimeText)

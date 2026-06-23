@@ -51,14 +51,17 @@ function Show-CtsDeparture {
         Force      = $Force
       }
     }
-    $LastLineCount = 0
-    # Save start position
-    Write-Host -Object "`e7" -NoNewline
+    $LineCount = 0
 
     while ($true) {
-      $LineCount = 0
-      $DepartureText = [System.Text.StringBuilder]::new()
       $Now = [DateTime]::Now
+      $DepartureText = [System.Text.StringBuilder]::new()
+
+      # Erase previous departures
+      if ($LineCount -gt 0) {
+        Write-Host -Object "`e[$($LineCount)F`e[$($LineCount)M" -NoNewline
+      }
+      $LineCount = 0
 
       Get-CtsDeparture @GetParam | Group-Object -Property StopName | ForEach-Object {
         $MaxLength = $_.Group | ForEach-Object { $_.Line.VisibleLength() } | Measure-Object -Maximum
@@ -72,9 +75,9 @@ function Show-CtsDeparture {
         for ($Index = 0; $Index -lt $_.Count; $Index++) {
           $Departure = $_.Group[$Index]
           if ($Index -lt ($_.Count - 1)) {
-            $null = $DepartureText.Append(" `e(0tq`e(B ")
+            $null = $DepartureText.Append(" `u{251C}`u{2500} ")
           } else {
-            $null = $DepartureText.Append(" `e(0mq`e(B ")
+            $null = $DepartureText.Append(" `u{2514}`u{2500} ")
           }
           $null = $DepartureText.Append($Departure.Line.PadRight($PadLength))
 
@@ -86,23 +89,9 @@ function Show-CtsDeparture {
         }
       }
 
-      # Replace previous departures and keep last error/warning/verbose messages
-      $TerminalSequence = [System.Text.StringBuilder]::new("`e8`e7")
-      if ($LastLineCount -gt 0) {
-        $null = $TerminalSequence.Append("`e[$($LastLineCount)M")
-      }
-      if ($LineCount -gt 0) {
-        $null = $TerminalSequence.Append("`e[$($LineCount)L")
-      }
-      $null = $DepartureText.Insert(0, $TerminalSequence)
-
       # Flush departures to console
       Write-Host -Object $DepartureText.ToString() -NoNewline
       Start-Sleep -Seconds $RefreshRate
-
-      # Erase previous error/warning/verbose messages
-      Write-Host -Object "`e8`e[100M" -NoNewline
-      $LastLineCount = $LineCount
     }
   }
 }
