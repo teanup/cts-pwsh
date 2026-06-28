@@ -9,7 +9,7 @@ function Find-CtsStop {
   .EXAMPLE
   Find-CtsStop Gallia Gare, Neuhof, Wolfisheim
   .OUTPUTS
-  List of CTS stop objects with the relevant lines and destinations
+  List of stop objects with the relevant lines and destinations
   #>
   [CmdletBinding()]
   [OutputType([System.Collections.Generic.List[Stop]])]
@@ -18,29 +18,29 @@ function Find-CtsStop {
     [Parameter()]
     [ArgumentCompleter([LineCompleter])]
     [AllowEmptyCollection()]
-    [String[]]$Line,
+    [String[]] $Line,
 
     # CTS stop names to look up
     [Parameter(Position = 0)]
     [ArgumentCompleter([StopCompleter])]
     [AllowEmptyCollection()]
     [Alias('From')]
-    [String[]]$Stop,
+    [String[]] $Stop,
 
     # CTS destination names to look up
     [Parameter(Position = 1)]
     [ArgumentCompleter([DestinationCompleter])]
     [AllowEmptyCollection()]
     [Alias('To')]
-    [String[]]$Destination,
+    [String[]] $Destination,
 
-    # Whether to bypass the CTS stop and departure caches
+    # Whether to bypass the stop and departure caches
     [Parameter(DontShow)]
-    [Switch]$Force,
+    [Switch] $Force,
 
-    # Whether to avoid updating the CTS stop cache
+    # Whether to avoid updating the stop cache
     [Parameter(DontShow)]
-    [Switch]$NoCacheFile
+    [Switch] $NoCacheFile
   )
   process {
     $Stops = [System.Collections.Generic.List[Stop]]::new()
@@ -96,12 +96,18 @@ function Find-CtsStop {
         }
 
         if ($Destinations.Count -gt 0) {
-          [Line]::new($CtsLine, $Destinations)
+          [Line]::new(
+            $CtsLine.LineRef,
+            $CtsLine.LineName,
+            '0x' + $CtsLine.Extension.RouteColor,
+            '0x' + $CtsLine.Extension.RouteTextColor,
+            $Destinations
+          )
         }
       }
 
       if ($Lines.Count -gt 0) {
-        $Stops.Add([Stop]::new($CtsStop, $Lines))
+        $Stops.Add([Stop]::new($CtsStop.StopPointRef, $CtsStop.StopName, $Lines))
       }
     }
 

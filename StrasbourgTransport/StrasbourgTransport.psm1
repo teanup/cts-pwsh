@@ -4,7 +4,7 @@ Imports classes and functions, defines module-scope variables
 #>
 
 param(
-  [String]$CtsApiKey
+  [String] $CtsApiKey
 )
 
 # Dot-source PowerShell scripts
@@ -42,7 +42,8 @@ if ($CtsApiKey) {
   $CtsApiKey = Get-Content -Path $CtsApiKeyPath | Select-Object -First 1
 }
 if (-not $CtsApiKey) {
-  Write-Warning -Message "Missing CTS API token. Set your token in '$CtsApiKeyPath' or import the module with: -ArgumentList <your-token>"
+  Write-Warning -Message 'Missing CTS API token!'
+  Write-Warning -Message "Set your token in '$CtsApiKeyPath' or import the module with: -ArgumentList <your-token>"
 }
 Set-Variable -Name CtsApiToken -Value $CtsApiKey -Option Constant -Visibility Private -Scope Local
 

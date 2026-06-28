@@ -1,26 +1,38 @@
-<#
-.SYNOPSIS
-Performs a request to the CTS API
-#>
 function Invoke-CtsApi {
+  <#
+  .SYNOPSIS
+  Performs a request to the CTS API
+  .DESCRIPTION
+  TODO
+  .EXAMPLE
+  Invoke-CtsApi TODO
+  .EXAMPLE
+  Invoke-CtsApi TODO
+  .OUTPUTS
+  Response parsed as a custom object
+  #>
   [CmdletBinding()]
   [OutputType([PSCustomObject])]
   param(
-    [Parameter(Mandatory = $true)]
+    # Path to the CTS api endpoint to query
+    [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
-    [String]$Path,
+    [String] $Path,
 
-    [Parameter(Mandatory = $false)]
+    # Query parameters or HTTP body
+    [Parameter()]
     [AllowNull()]
-    [Hashtable]$Query,
+    [Hashtable] $Query,
 
-    [Parameter(Mandatory = $false)]
+    # CTS API token, usually set at module import
+    [Parameter()]
     [ValidateNotNull()]
-    [String]$Token = $Script:CtsApiToken,
+    [String] $Token = $Script:CtsApiToken,
 
-    [Parameter(Mandatory = $false)]
+    # Base URL of the CTS API
+    [Parameter()]
     [ValidateNotNullOrEmpty()]
-    [String]$BaseUrl = 'https://api.cts-strasbourg.eu/v1/'
+    [String] $BaseUrl = 'https://api.cts-strasbourg.eu/v1/'
   )
   process {
     $RequestParam = @{

@@ -1,21 +1,32 @@
-<#
-.SYNOPSIS
-Retrieves the raw CTS stop departures and caches it locally
-#>
 function Get-CtsDepartureData {
+  <#
+  .SYNOPSIS
+  Retrieves the raw CTS stop departures and caches it locally
+  .DESCRIPTION
+  TODO
+  .EXAMPLE
+  Get-CtsDepartureData TODO
+  .EXAMPLE
+  Get-CtsDepartureData TODO
+  .OUTPUTS
+  CtsMonitoredStopVisit objects with departure data for the specified stop
+  #>
   [CmdletBinding()]
   [OutputType([CtsMonitoredStopVisit])]
   param(
-    [Parameter(Mandatory = $true)]
+    # ID of the CTS stop to query
+    [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
-    [String]$StopId,
+    [String] $StopId,
 
-    [Parameter(Mandatory = $false)]
+    # Number of departures to query
+    [Parameter()]
     [ValidateRange(1, 10)]
-    [Int]$MinDepartures = 3,
+    [Int] $MinDepartures = 3,
 
-    [Parameter(Mandatory = $false)]
-    [Switch]$Force
+    # Whether to bypass the departure cache
+    [Parameter()]
+    [Switch] $Force
   )
   process {
     $DepartureCacheType = [System.Collections.Concurrent.ConcurrentDictionary[String, CtsStopMonitoringDelivery]]

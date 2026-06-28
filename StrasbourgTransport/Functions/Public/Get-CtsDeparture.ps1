@@ -9,7 +9,7 @@ function Get-CtsDeparture {
   .EXAMPLE
   Get-CtsDeparture TODO
   .OUTPUTS
-  CTS departures for the relevant stops, destinations and departures
+  Departure objects for the relevant stops, lines and destinations
   #>
   [CmdletBinding(DefaultParameterSetName = 'Filters')]
   [OutputType([Departure])]
@@ -18,39 +18,39 @@ function Get-CtsDeparture {
     [Parameter(ParameterSetName = 'Filters')]
     [ArgumentCompleter([LineCompleter])]
     [AllowEmptyCollection()]
-    [String[]]$Line,
+    [String[]] $Line,
 
     # CTS stop names to look up
     [Parameter(Position = 0, ParameterSetName = 'Filters')]
     [ArgumentCompleter([StopCompleter])]
     [AllowEmptyCollection()]
     [Alias('From')]
-    [String[]]$Stop,
+    [String[]] $Stop,
 
     # CTS destination names to look up
     [Parameter(Position = 1, ParameterSetName = 'Filters')]
     [ArgumentCompleter([DestinationCompleter])]
     [AllowEmptyCollection()]
     [Alias('To')]
-    [String[]]$Destination,
+    [String[]] $Destination,
 
     # CTS stop objects to use
     [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'Object')]
     [AllowEmptyCollection()]
-    [Stop[]]$StopObject,
+    [Stop[]] $StopObject,
 
     # Maximum number of departures per line, stop and destination
     [Parameter()]
     [ValidateRange(1, 8)]
-    [Int]$MaxDepartures = 3,
+    [Int] $MaxDepartures = 3,
 
-    # Whether to bypass the CTS stop and departure caches
+    # Whether to bypass the stop and departure caches
     [Parameter(DontShow)]
-    [Switch]$Force,
+    [Switch] $Force,
 
-    # Whether to avoid updating the CTS stop cache
+    # Whether to avoid updating the stop cache
     [Parameter(ParameterSetName = 'Filters', DontShow)]
-    [Switch]$NoCacheFile
+    [Switch] $NoCacheFile
   )
   process {
     if ($PSCmdlet.ParameterSetName -eq 'Filters') {
@@ -76,10 +76,20 @@ function Get-CtsDeparture {
         $CtsDepartures.MonitoredVehicleJourney | Where-Object {
           $_.LineRef -eq $StopLine.Name
         } | Group-Object -Property DestinationName | ForEach-Object {
-          # Split departures per destination
-          $Departure = [Departure]::new($StopName, [Line]::new($StopLine, @($_.Name)), $_.Group)
-          $Departure.FilterTimes($NotBefore, $MaxDepartures)
-          $Departure
+          $DepartureTimes = $_.Group.MonitoredCall | Where-Object {
+            $_.ExpectedDepartureTime -ge $NotBefore
+          } | Select-Object -First $MaxDepartures | ForEach-Object {
+            [DepartureTime]@{
+              Time = $_.ExpectedDepartureTime
+              Live = $_.Extension.IsRealTime
+            }
+          }
+
+          [Departure]@{
+            StopName = $StopName
+            Line     = [Line]::new($StopLine, @($_.Name))
+            Times    = $DepartureTimes
+          }
         }
       }
     }

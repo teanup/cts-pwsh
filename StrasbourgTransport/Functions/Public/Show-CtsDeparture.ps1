@@ -16,44 +16,44 @@ function Show-CtsDeparture {
     [Parameter(ParameterSetName = 'Filters')]
     [ArgumentCompleter([LineCompleter])]
     [AllowEmptyCollection()]
-    [String[]]$Line,
+    [String[]] $Line,
 
     # CTS stop names to look up
     [Parameter(Position = 0, ParameterSetName = 'Filters')]
     [ArgumentCompleter([StopCompleter])]
     [AllowEmptyCollection()]
     [Alias('From')]
-    [String[]]$Stop,
+    [String[]] $Stop,
 
     # CTS destination names to look up
     [Parameter(Position = 1, ParameterSetName = 'Filters')]
     [ArgumentCompleter([DestinationCompleter])]
     [AllowEmptyCollection()]
     [Alias('To')]
-    [String[]]$Destination,
+    [String[]] $Destination,
 
     # CTS stop objects to use
     [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'Object')]
     [AllowEmptyCollection()]
-    [Stop[]]$StopObject,
+    [Stop[]] $StopObject,
 
     # Maximum number of departures per line, stop and destination
     [Parameter()]
     [ValidateRange(1, 8)]
-    [Int]$MaxDepartures = 3,
+    [Int] $MaxDepartures = 3,
 
     # Time between each departure refresh in seconds
     [Parameter()]
     [ValidateRange(1, [Int]::MaxValue)]
-    [Int]$RefreshRate = 5,
+    [Int] $RefreshRate = 5,
 
-    # Whether to bypass the CTS stop and departure caches
+    # Whether to bypass the stop and departure caches
     [Parameter(DontShow)]
-    [Switch]$Force,
+    [Switch] $Force,
 
-    # Whether to avoid updating the CTS stop cache
+    # Whether to avoid updating the stop cache
     [Parameter(ParameterSetName = 'Filters', DontShow)]
-    [Switch]$NoCacheFile
+    [Switch] $NoCacheFile
   )
   process {
     if ($PSCmdlet.ParameterSetName -eq 'Filters') {
@@ -103,7 +103,7 @@ function Show-CtsDeparture {
           $null = $DepartureText.Append($Departure.Line.PadRight($PadLength))
 
           # Departures on same line
-          $DepartureTimeText = $Departure.Departures | ForEach-Object { $_.PadLeft(5, $Now) }
+          $DepartureTimeText = $Departure.Times | ForEach-Object { $_.PadLeft(5, $Now) }
           $null = $DepartureText.AppendJoin('  ', $DepartureTimeText)
           $null = $DepartureText.AppendLine()
           $LineCount++

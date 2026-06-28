@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Classes describing simplified types for this module
+Classes describing simplified CTS types for this module
 #>
 
 using namespace System.Management.Automation
@@ -23,14 +23,14 @@ class Formatted {
   }
 
   hidden [String] Pad([Int]$TotalWidth, [Bool]$PadLeft, [Bool]$HasToStringParam, [Object]$ToStringParam) {
-    $String = $this.ToString($HasToStringParam, $ToStringParam)
-    $LenDiff = $TotalWidth - $this.VisibleLength($String)
+    $Text = $this.ToString($HasToStringParam, $ToStringParam)
+    $LenDiff = $TotalWidth - $this.VisibleLength($Text)
     if ($LenDiff -le 0) {
-      return $String
+      return $Text
     } elseif ($PadLeft) {
-      return (' ' * $LenDiff + $String)
+      return (' ' * $LenDiff + $Text)
     } else {
-      return ($String + ' ' * $LenDiff)
+      return ($Text + ' ' * $LenDiff)
     }
   }
 
@@ -60,13 +60,13 @@ class Formatted {
 }
 
 class Stop {
-  [String]$Id
-  [String]$Name
-  [Line[]]$Lines
+  [String] $Id
+  [String] $Name
+  [Line[]] $Lines
 
-  Stop([CtsAnnotatedStopPointStructure]$CtsStop, [Line[]]$Lines) {
-    $this.Id = $CtsStop.StopPointRef
-    $this.Name = $CtsStop.StopName
+  Stop([String]$Id, [String]$Name, [Line[]]$Lines) {
+    $this.Id = $Id
+    $this.Name = $Name
     $this.Lines = $Lines
   }
 
@@ -76,21 +76,20 @@ class Stop {
 }
 
 class Line : Formatted {
-  [String]$Name
-  [String]$DisplayName
-  [String]$Description
-  [String[]]$Destinations
+  [String] $Name
+  [String] $DisplayName
+  [String] $Description
+  [String[]] $Destinations
 
-  Line([CtsAnnotatedLineStructure]$CtsLine, [String[]]$Destinations) {
-    $this.Name = $CtsLine.LineRef
-    $this.Description = $CtsLine.LineName
+  Line([String]$Name, [String]$Description, [String]$Background, [String]$Foreground, [String[]]$Destinations) {
+    $this.Name = $Name
+    $this.Description = $Description
     $this.Destinations = $Destinations
 
     $PSStyle = [PSStyle]::Instance
     $Text = ' ' + $this.Name + ' '
-    $Background = $PSStyle.Background.FromRgb('0x' + $CtsLine.Extension.RouteColor)
-    $Foreground = $PSStyle.Foreground.FromRgb('0x' + $CtsLine.Extension.RouteTextColor)
-    $this.DisplayName = $PSStyle.Bold + $Background + $Foreground + $Text + $PSStyle.Reset
+    $Color = $PSStyle.Background.FromRgb($Background) + $PSStyle.Foreground.FromRgb($Foreground)
+    $this.DisplayName = $PSStyle.Bold + $Color + $Text + $PSStyle.Reset
   }
 
   Line([Line]$Line, [String[]]$Destinations) {
@@ -106,31 +105,14 @@ class Line : Formatted {
 }
 
 class Departure {
-  [String]$StopName
-  [Line]$Line
-  [DepartureTime[]]$Times
-
-  Departure([String]$StopName, [Line]$Line, [CtsMonitoredVehicleJourney[]]$CtsDepartures) {
-    $this.StopName = $StopName
-    $this.Line = $Line
-    $this.Times = [DepartureTime[]]$CtsDepartures.MonitoredCall
-  }
-
-  FilterTimes([DateTime]$NotBefore, [Int]$MaxCount) {
-    $this.Times = $this.Times | Where-Object {
-      $_.Time -ge $NotBefore
-    } | Select-Object -First $MaxCount
-  }
+  [String] $StopName
+  [Line] $Line
+  [DepartureTime[]] $Times
 }
 
 class DepartureTime : Formatted {
-  [DateTime]$Time
-  [Bool]$Live
-
-  DepartureTime([CtsMonitoredCall]$CtsDepartureTime) {
-    $this.Time = $CtsDepartureTime.ExpectedDepartureTime
-    $this.Live = $CtsDepartureTime.Extension.IsRealTime
-  }
+  [DateTime] $Time
+  [Bool] $Live
 
   [String] ToString() {
     return $this.ToString(0)

@@ -6,22 +6,29 @@ Parses the CTS API documentation to define compatible PowerShell types
 [CmdletBinding()]
 [OutputType([Void])]
 param(
-  [Parameter(Mandatory = $false)]
-  [String]$Path,
+  # Path to the PowerShell script where CTS API types should be defined
+  [Parameter()]
+  [String] $Path,
 
-  [Parameter(Mandatory = $false)]
-  [String]$OpenApiUrl = 'https://api.cts-strasbourg.eu/v1/swagger.json'
+  # URL to the CTS API specifications (OpenAPI JSON)
+  [Parameter()]
+  [String] $OpenApiUrl = 'https://api.cts-strasbourg.eu/v1/swagger.json'
 )
 
 $ErrorActionPreference = 'Stop'
 $TypePrefix = 'Cts'
 
 function Get-CtsApiPropertyType {
+  <#
+  .SYNOPSIS
+  Converts a property type's specifications into PowerShell a type name
+  #>
   [CmdletBinding()]
   [OutputType([String])]
   param(
-    [Parameter(Mandatory = $true)]
-    [PSCustomObject]$InputObject
+    # Raw specifications of an object type property
+    [Parameter(Mandatory)]
+    [PSCustomObject] $InputObject
   )
   process {
     if ($InputObject.type) {
@@ -75,7 +82,7 @@ function Get-CtsApiPropertyType {
 }
 
 if ([String]::IsNullOrEmpty($Path)) {
-  $Path = Split-Path -Path $PSScriptRoot -Parent | Join-Path -ChildPath 'StrasbourgTransport' -AdditionalChildPath 'Classes', '0-CtsApi.ps1'
+  $Path = Join-Path -Path $PSScriptRoot -ChildPath 'CtsApi.ps1'
   Write-Verbose -Message "Using default path for CTS API types: $Path"
 }
 
@@ -112,7 +119,7 @@ $TypeNameList = [System.Collections.Generic.List[String]]::new()
           $Property = $TypeObj.properties.$_
           $PropertyType = Get-CtsApiPropertyType -InputObject $Property
           if ($PropertyType) {
-            "[$PropertyType]`$$_"
+            "[$PropertyType] `$$_"
           } else {
             Write-Warning -Message "Invalid property type for '$TypeName': $($Property | ConvertTo-Json -Compress)"
           }

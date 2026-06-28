@@ -1,16 +1,26 @@
-<#
-.SYNOPSIS
-Retrieves the raw CTS stop list and caches it locally
-#>
 function Get-CtsStopData {
+  <#
+  .SYNOPSIS
+  Retrieves the raw CTS stop list and caches it locally
+  .DESCRIPTION
+  TODO
+  .EXAMPLE
+  Get-CtsStopData TODO
+  .EXAMPLE
+  Get-CtsStopData TODO
+  .OUTPUTS
+  CtsAnnotatedStopPointStructure objects with stop data for all stops
+  #>
   [CmdletBinding()]
   [OutputType([CtsAnnotatedStopPointStructure])]
   param(
-    [Parameter(Mandatory = $false)]
-    [Switch]$Force,
+    # Whether to bypass the stop cache
+    [Parameter()]
+    [Switch] $Force,
 
-    [Parameter(Mandatory = $false)]
-    [Switch]$NoCacheFile
+    # Whether to avoid updating the stop cache
+    [Parameter()]
+    [Switch] $NoCacheFile
   )
   process {
     $StopCachePath = [System.IO.Path]::GetTempPath() | Join-Path -ChildPath 'cts-stop-cache.json'

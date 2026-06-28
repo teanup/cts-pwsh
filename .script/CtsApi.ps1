@@ -76,8 +76,6 @@ class CtsEstimatedVehicleJourney {
 }
 
 class CtsExtensionAnnotatedLineStructure {
-  [String] $InformationPage # Missing in OpenAPI docs
-  [Bool] $LineHidden # Missing in OpenAPI docs
   [String] $RouteColor
   [String] $RouteTextColor
   [CtsRouteModeEnumeration] $RouteType
