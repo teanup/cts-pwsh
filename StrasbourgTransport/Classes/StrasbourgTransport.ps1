@@ -138,3 +138,15 @@ class DepartureTime : Formatted {
     }
   }
 }
+
+class DepartureCache {
+  [DateTime] $ValidUntil
+  [DepartureData[]] $Departures
+}
+
+class DepartureData {
+  [String] $StopId
+  [String] $LineName
+  [String] $Destination
+  [DepartureTime[]] $Times
+}

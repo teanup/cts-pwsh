@@ -19,7 +19,7 @@ function Invoke-CtsApi {
     [ValidateNotNullOrEmpty()]
     [String] $Path,
 
-    # Query parameters or HTTP body
+    # Optional query parameters to append to the request
     [Parameter()]
     [AllowNull()]
     [Hashtable] $Query,
@@ -35,10 +35,24 @@ function Invoke-CtsApi {
     [String] $BaseUrl = 'https://api.cts-strasbourg.eu/v1/'
   )
   process {
+    $UriBuilder = [System.UriBuilder]::new($BaseUrl + $Path)
+    $QueryString = [System.Web.HttpUtility]::ParseQueryString('')
+
+    foreach ($Param in $Query.GetEnumerator()) {
+      # Convert arrays to duplicate query parameters
+      if ($Param.Value -is [Array]) {
+        foreach ($Value in $Param.Value) {
+          $QueryString.Add($Param.Key, $Value)
+        }
+      } else {
+        $QueryString.Add($Param.Key, $Param.Value)
+      }
+    }
+    $UriBuilder.Query = $QueryString.ToString()
+
     $RequestParam = @{
       Method         = 'Get'
-      Uri            = $BaseUrl + $Path
-      Body           = $Query
+      Uri            = $UriBuilder.ToString()
       Authentication = 'Basic'
       Credential     = [PSCredential]::new($Token, [SecureString]::new())
     }

@@ -34,6 +34,10 @@ function Find-CtsStop {
     [Alias('To')]
     [String[]] $Destination,
 
+    # Whether to look up stops with loose string matching
+    [Parameter(DontShow)]
+    [Switch] $LooseComparison,
+
     # Whether to bypass the stop and departure caches
     [Parameter(DontShow)]
     [Switch] $Force,
@@ -43,10 +47,9 @@ function Find-CtsStop {
     [Switch] $NoCacheFile
   )
   process {
-    $Stops = [System.Collections.Generic.List[Stop]]::new()
     $CaseComparison = [System.StringComparison]::CurrentCultureIgnoreCase
 
-    Get-CtsStopData -Force:$Force -NoCacheFile:$NoCacheFile | ForEach-Object {
+    $Stops = Get-CtsStopData -Force:$Force -NoCacheFile:$NoCacheFile | ForEach-Object {
       $CtsStop = $_
       # Filter stops
       $IsMatchingStop = $Stop.Count -eq 0
@@ -64,11 +67,14 @@ function Find-CtsStop {
 
       $Lines = $CtsStop.Lines | ForEach-Object {
         $CtsLine = $_
-        # Filer lines
+        # Filter lines
         $IsMatchingLine = $Line.Count -eq 0
         if (-not $IsMatchingLine) {
           foreach ($LineName in $Line) {
-            if ($CtsLine.LineRef.StartsWith($LineName, $CaseComparison)) {
+            if ($CtsLine.LineRef -eq $LineName) {
+              $IsMatchingLine = $true
+              break
+            } elseif ($LooseComparison -and $CtsLine.LineRef.StartsWith($LineName, $CaseComparison)) {
               $IsMatchingLine = $true
               break
             }
@@ -80,7 +86,7 @@ function Find-CtsStop {
 
         $Destinations = $CtsLine.Destinations | ForEach-Object { $_.DestinationName } | ForEach-Object {
           $CtsDest = $_
-          # Filer destinations
+          # Filter destinations
           $IsMatchingDest = $Destination.Count -eq 0
           if (-not $IsMatchingDest) {
             foreach ($DestName in $Destination) {
@@ -107,10 +113,11 @@ function Find-CtsStop {
       }
 
       if ($Lines.Count -gt 0) {
-        $Stops.Add([Stop]::new($CtsStop.StopPointRef, $CtsStop.StopName, $Lines))
+        [Stop]::new($CtsStop.StopPointRef, $CtsStop.StopName, $Lines)
       }
     }
 
-    $Stops
+    # Return stops as list
+    Write-Output -InputObject $Stops -NoEnumerate
   }
 }

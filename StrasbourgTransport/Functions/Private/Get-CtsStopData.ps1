@@ -56,7 +56,7 @@ function Get-CtsStopData {
       try {
         $Response = Invoke-CtsApi -Path 'siri/2.0/stoppoints-discovery' -Query @{
           IncludeLinesDestinations = $true
-        } -Token $Script:CtsApiToken
+        }
         [CtsStopPointsDelivery]$Script:StopCache = $Response.StopPointsDelivery
 
         if (-not $NoCacheFile) {

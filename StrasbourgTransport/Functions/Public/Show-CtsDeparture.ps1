@@ -72,17 +72,17 @@ function Show-CtsDeparture {
         Force         = $Force
       }
     }
-    $LineCount = 0
 
     while ($true) {
+      $LastLineCount = $LineCount
+      $LineCount = 0
       $Now = [DateTime]::Now
       $DepartureText = [System.Text.StringBuilder]::new()
 
-      # Erase previous departures
-      if ($LineCount -gt 0) {
-        Write-Host -Object "`e[$($LineCount)F`e[$($LineCount)M" -NoNewline
+      # Move cursor to top position
+      if ($LastLineCount -gt 0) {
+        Write-Host -Object "`e[$($LastLineCount)F" -NoNewline
       }
-      $LineCount = 0
 
       Get-CtsDeparture @GetParam | Group-Object -Property StopName | ForEach-Object {
         $MaxLength = $_.Group | ForEach-Object { $_.Line.VisibleLength() } | Measure-Object -Maximum
@@ -108,6 +108,11 @@ function Show-CtsDeparture {
           $null = $DepartureText.AppendLine()
           $LineCount++
         }
+      }
+
+      # Erase previous departures
+      if ($LastLineCount -gt 0) {
+        Write-Host -Object "`e[$($LastLineCount)M" -NoNewline
       }
 
       # Print departures

@@ -49,5 +49,3 @@ Set-Variable -Name CtsApiToken -Value $CtsApiKey -Option Constant -Visibility Pr
 
 # Cache configuration
 $Script:StopCacheValidFor = [TimeSpan]::FromDays(3)
-$Script:DepartureCacheValidFor = [TimeSpan]::FromSeconds(30)
-$Script:SafeRequestThreshold = 4

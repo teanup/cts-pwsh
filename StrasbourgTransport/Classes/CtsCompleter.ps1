@@ -22,18 +22,24 @@ class CtsCompleter : IArgumentCompleter {
   ) {
     $this.Results.Clear()
 
+    $FindParam = @{
+      Line            = $FakeBoundParameters.Line
+      Stop            = $FakeBoundParameters.Stop
+      Destination     = $FakeBoundParameters.Destination
+      LooseComparison = $true
+    }
     # Unescape quotes for CTS item lookup
-    $FakeBoundParameters.$ParameterName = [Regex]::Unescape($WordToComplete -replace '(^"|"$)|(^''|''$)')
-    $CompletionItems = $this.CtsItems($FakeBoundParameters)
+    $FindParam.$ParameterName = [Regex]::Unescape($WordToComplete -replace '(^"|"$)|(^''|''$)')
+    $CompletionItems = $this.CtsItems($FindParam)
 
     foreach ($Item in $CompletionItems) {
       # Escape quotes for command line parameter text
-      $CompletionText = [CodeGeneration]::EscapeSingleQuotedStringContent($Item)
+      $Completion = [CodeGeneration]::EscapeSingleQuotedStringContent($Item)
       if ($Item -match '\s') {
-        $CompletionText = "'$CompletionText'"
+        $Completion = "'$Completion'"
       }
 
-      $this.Results.Add([CompletionResult]::new($CompletionText, $Item, [CompletionResultType]::ParameterValue, $Item))
+      $this.Results.Add([CompletionResult]::new($Completion, $Item, [CompletionResultType]::ParameterValue, $Item))
     }
     return $this.Results
   }

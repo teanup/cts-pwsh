@@ -64,31 +64,27 @@ function Get-CtsDeparture {
       $StopObject = Find-CtsStop @FindParam
     }
 
+    if ($StopObject.Count -eq 0) {
+      Write-Verbose -Message 'CtsDeparture: No stop found with requested filters'
+      return
+    }
+
+    # Cache 1 extra stop as backup
+    $DepartureData = Get-CtsDepartureData -StopId $StopObject.Id -MinDepartures ($MaxDepartures + 1) -Force:$Force
+
     $NotBefore = [DateTime]::Now.AddSeconds(-10)
     $StopObject | ForEach-Object {
+      $StopId = $_.Id
       $StopName = $_.Name
-      $CtsDepartures = Get-CtsDepartureData -StopId $_.Id -MinDepartures ($MaxDepartures + 1) -Force:$Force
-
+      $StopDepartureData = $DepartureData | Where-Object { $_.StopId -eq $StopId }
       $_.Lines | ForEach-Object {
         $StopLine = $_
-
         # Include all destinations for given line to support CTS network changes
-        $CtsDepartures.MonitoredVehicleJourney | Where-Object {
-          $_.LineRef -eq $StopLine.Name
-        } | Group-Object -Property DestinationName | ForEach-Object {
-          $DepartureTimes = $_.Group.MonitoredCall | Where-Object {
-            $_.ExpectedDepartureTime -ge $NotBefore
-          } | Select-Object -First $MaxDepartures | ForEach-Object {
-            [DepartureTime]@{
-              Time = $_.ExpectedDepartureTime
-              Live = $_.Extension.IsRealTime
-            }
-          }
-
+        $StopDepartureData | Where-Object { $_.LineName -eq $StopLine.Name } | ForEach-Object {
           [Departure]@{
             StopName = $StopName
-            Line     = [Line]::new($StopLine, @($_.Name))
-            Times    = $DepartureTimes
+            Line     = [Line]::new($StopLine, @($_.Destination))
+            Times    = $_.Times | Where-Object { $_.Time -ge $NotBefore } | Select-Object -First $MaxDepartures
           }
         }
       }

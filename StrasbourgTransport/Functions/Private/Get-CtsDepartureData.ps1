@@ -9,15 +9,15 @@ function Get-CtsDepartureData {
   .EXAMPLE
   Get-CtsDepartureData TODO
   .OUTPUTS
-  CtsMonitoredStopVisit objects with departure data for the specified stop
+  DepartureData objects with departure data for the specified stops
   #>
   [CmdletBinding()]
-  [OutputType([CtsMonitoredStopVisit])]
+  [OutputType([DepartureData])]
   param(
-    # ID of the CTS stop to query
+    # IDs of the CTS stops to query
     [Parameter(Mandatory)]
-    [ValidateNotNullOrEmpty()]
-    [String] $StopId,
+    [ValidatePattern('^\w{6,10}$')]
+    [String[]] $StopId,
 
     # Number of departures to query
     [Parameter()]
@@ -29,32 +29,56 @@ function Get-CtsDepartureData {
     [Switch] $Force
   )
   process {
-    $DepartureCacheType = [System.Collections.Concurrent.ConcurrentDictionary[String, CtsStopMonitoringDelivery]]
-    if ($null -eq $Script:DepartureCache -or $Script:DepartureCache -isnot $DepartureCacheType) {
-      $Script:DepartureCache = $DepartureCacheType::new()
+    if ($null -eq $Script:DepartureCache) {
+      $Script:DepartureCache = [System.Collections.Generic.Dictionary[String, DepartureCache]]::new()
     }
 
-    # Use runspace cache if available
-    if (-not $Force -and $Script:DepartureCache.ContainsKey($StopId)) {
-      [CtsStopMonitoringDelivery]$StopMonitoring = $null
-      if ($Script:DepartureCache.TryGetValue($StopId, [Ref]$StopMonitoring)) {
-        if (([DateTime]::Now - $StopMonitoring.ResponseTimestamp) -le $Script:DepartureCacheValidFor) {
-          return $StopMonitoring.MonitoredStopVisit
+    $Now = [DateTime]::Now
+    $ExpiredStopId = $StopId | Where-Object {
+      $Force -or $Script:DepartureCache.$_.ValidUntil -lt $Now
+    }
+
+    # Request expired departures
+    if ($ExpiredStopId.Count -gt 0) {
+      try {
+        Write-Verbose -Message "CtsDeparture: Fetching departures for $($ExpiredStopId.Count) stops"
+        $Response = Invoke-CtsApi -Path 'siri/2.0/stop-monitoring' -Query @{
+          MonitoringRef            = $ExpiredStopId
+          MinimumStopVisitsPerLine = $MinDepartures
+        }
+        [CtsStopMonitoringDelivery]$StopMonitoring = $Response.ServiceDelivery.StopMonitoringDelivery[0]
+      } catch {
+        $PSCmdlet.ThrowTerminatingError($_)
+      }
+
+      # Update departure cache
+      $StopVisits = $StopMonitoring.MonitoredStopVisit
+      $ExpiredStopId | ForEach-Object {
+        $Id = $_
+        $VehicleJourneys = ($StopVisits | Where-Object { $_.MonitoringRef -eq $Id }).MonitoredVehicleJourney
+        $Script:DepartureCache.$Id = [DepartureCache]@{
+          ValidUntil = $StopMonitoring.ValidUntil
+          Departures = $VehicleJourneys | Group-Object -Property LineRef, DestinationName | ForEach-Object {
+            $Line = $_.Group[0].LineRef
+            $Destination = $_.Group[0].DestinationName
+
+            [DepartureData]@{
+              StopId      = $Id
+              LineName    = $Line
+              Destination = $Destination
+              Times       = $_.Group.MonitoredCall | ForEach-Object {
+                [DepartureTime]@{
+                  Time = $_.ExpectedDepartureTime
+                  Live = $_.Extension.IsRealTime
+                }
+              }
+            }
+          }
         }
       }
     }
 
-    # Fall back to CTS API
-    try {
-      $Response = Invoke-CtsApi -Path 'siri/2.0/stop-monitoring' -Query @{
-        MonitoringRef            = $StopId
-        MinimumStopVisitsPerLine = $MinDepartures
-      } -Token $Script:CtsApiToken
-      [CtsStopMonitoringDelivery]$StopMonitoring = $Response.ServiceDelivery.StopMonitoringDelivery[0]
-      $StopMonitoring = $Script:DepartureCache.AddOrUpdate($StopId, $StopMonitoring, { $StopMonitoring })
-      return $StopMonitoring.MonitoredStopVisit
-    } catch {
-      $PSCmdlet.ThrowTerminatingError($_)
-    }
+    # Return data for requested stops
+    $StopId | ForEach-Object { $Script:DepartureCache.$_.Departures }
   }
 }
