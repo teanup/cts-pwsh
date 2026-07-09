@@ -5,7 +5,7 @@ Parses the CTS API documentation to define compatible PowerShell types
 
 [CmdletBinding()]
 [OutputType([Void])]
-param(
+param (
   # Path to the PowerShell script where CTS API types should be defined
   [Parameter()]
   [String] $Path,
@@ -25,7 +25,7 @@ function Get-CtsApiPropertyType {
   #>
   [CmdletBinding()]
   [OutputType([String])]
-  param(
+  param (
     # Raw specifications of an object type property
     [Parameter(Mandatory)]
     [PSCustomObject] $InputObject

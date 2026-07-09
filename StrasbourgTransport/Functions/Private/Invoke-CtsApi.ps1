@@ -13,7 +13,7 @@ function Invoke-CtsApi {
   #>
   [CmdletBinding()]
   [OutputType([PSCustomObject])]
-  param(
+  param (
     # Path to the CTS api endpoint to query
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]

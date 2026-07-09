@@ -13,7 +13,7 @@ function Get-CtsDepartureData {
   #>
   [CmdletBinding()]
   [OutputType([DepartureData])]
-  param(
+  param (
     # IDs of the CTS stops to query
     [Parameter(Mandatory)]
     [ValidatePattern('^\w{6,10}$')]
@@ -38,7 +38,7 @@ function Get-CtsDepartureData {
       $Force -or $Script:DepartureCache.$_.ValidUntil -lt $Now
     }
 
-    # Request expired departures
+    # Fetch expired departures
     if ($ExpiredStopId.Count -gt 0) {
       try {
         Write-Verbose -Message "CtsDeparture: Fetching departures for $($ExpiredStopId.Count) stops"
@@ -51,13 +51,20 @@ function Get-CtsDepartureData {
         $PSCmdlet.ThrowTerminatingError($_)
       }
 
+      # Follow CTS response cache guidelines
+      $ShortestCycle = [System.Xml.XmlConvert]::ToTimeSpan($StopMonitoring.ShortestPossibleCycle)
+      $ValidUntil = $StopMonitoring.ResponseTimestamp + $ShortestCycle
+      if ($StopMonitoring.ValidUntil -gt $ValidUntil) {
+        $ValidUntil = $StopMonitoring.ValidUntil
+      }
+
       # Update departure cache
       $StopVisits = $StopMonitoring.MonitoredStopVisit
       $ExpiredStopId | ForEach-Object {
         $Id = $_
         $VehicleJourneys = ($StopVisits | Where-Object { $_.MonitoringRef -eq $Id }).MonitoredVehicleJourney
         $Script:DepartureCache.$Id = [DepartureCache]@{
-          ValidUntil = $StopMonitoring.ValidUntil
+          ValidUntil = $ValidUntil
           Departures = $VehicleJourneys | Group-Object -Property LineRef, DestinationName | ForEach-Object {
             $Line = $_.Group[0].LineRef
             $Destination = $_.Group[0].DestinationName

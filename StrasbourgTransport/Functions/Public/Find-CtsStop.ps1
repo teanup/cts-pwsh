@@ -9,11 +9,11 @@ function Find-CtsStop {
   .EXAMPLE
   Find-CtsStop Gallia Gare, Neuhof, Wolfisheim
   .OUTPUTS
-  List of stop objects with the relevant lines and destinations
+  Stop objects with the relevant lines and destinations
   #>
   [CmdletBinding()]
-  [OutputType([System.Collections.Generic.List[Stop]])]
-  param(
+  [OutputType([Stop])]
+  param (
     # CTS line names to look up
     [Parameter()]
     [ArgumentCompleter([LineCompleter])]
@@ -36,7 +36,7 @@ function Find-CtsStop {
 
     # Whether to look up stops with loose string matching
     [Parameter(DontShow)]
-    [Switch] $LooseComparison,
+    [Switch] $LooseMatch,
 
     # Whether to bypass the stop and departure caches
     [Parameter(DontShow)]
@@ -46,78 +46,47 @@ function Find-CtsStop {
     [Parameter(DontShow)]
     [Switch] $NoCacheFile
   )
+  begin {
+    $StringComparison = [System.StringComparison]::CurrentCultureIgnoreCase
+
+    function Test-StringArrayMatch {
+      param (
+        [String] $String,
+        [String[]] $Patterns,
+        [Switch] $Exact
+      )
+      foreach ($Pattern in $Patterns) {
+        if (($Exact -and ($String -eq $Pattern)) -or $String.StartsWith($Pattern, $StringComparison)) {
+          return $true
+        }
+      }
+      return $false
+    }
+  }
   process {
-    $CaseComparison = [System.StringComparison]::CurrentCultureIgnoreCase
+    $StopCache = Get-CtsStopData -Force:$Force -NoCacheFile:$NoCacheFile
 
-    $Stops = Get-CtsStopData -Force:$Force -NoCacheFile:$NoCacheFile | ForEach-Object {
-      $CtsStop = $_
+    $StopCache.Stops.GetEnumerator() | Where-Object {
       # Filter stops
-      $IsMatchingStop = $Stop.Count -eq 0
-      if (-not $IsMatchingStop) {
-        foreach ($StopName in $Stop) {
-          if ($CtsStop.StopName.StartsWith($StopName, $CaseComparison)) {
-            $IsMatchingStop = $true
-            break
-          }
-        }
-      }
-      if (-not $IsMatchingStop -or $CtsStop.Lines.Count -eq 0) {
-        return
-      }
-
-      $Lines = $CtsStop.Lines | ForEach-Object {
-        $CtsLine = $_
+      $Stop.Count -eq 0 -or (Test-StringArrayMatch -String $_.Value.Name -Patterns $Stop)
+    } | ForEach-Object {
+      $Lines = $_.Value.Lines.GetEnumerator() | Where-Object {
         # Filter lines
-        $IsMatchingLine = $Line.Count -eq 0
-        if (-not $IsMatchingLine) {
-          foreach ($LineName in $Line) {
-            if ($CtsLine.LineRef -eq $LineName) {
-              $IsMatchingLine = $true
-              break
-            } elseif ($LooseComparison -and $CtsLine.LineRef.StartsWith($LineName, $CaseComparison)) {
-              $IsMatchingLine = $true
-              break
-            }
-          }
-        }
-        if (-not $IsMatchingLine -or $CtsLine.Destinations.Count -eq 0) {
-          return
-        }
-
-        $Destinations = $CtsLine.Destinations | ForEach-Object { $_.DestinationName } | ForEach-Object {
-          $CtsDest = $_
+        $Line.Count -eq 0 -or (Test-StringArrayMatch -String $_.Key -Patterns $Line -Exact:(-not $LooseMatch))
+      } | ForEach-Object {
+        $Destinations = $_.Value | Where-Object {
           # Filter destinations
-          $IsMatchingDest = $Destination.Count -eq 0
-          if (-not $IsMatchingDest) {
-            foreach ($DestName in $Destination) {
-              if ($CtsDest.StartsWith($DestName, $CaseComparison)) {
-                $IsMatchingDest = $true
-                break
-              }
-            }
-          }
-          if ($IsMatchingDest) {
-            $CtsDest
-          }
+          $Destination.Count -eq 0 -or (Test-StringArrayMatch -String $_ -Patterns $Destination)
         }
 
         if ($Destinations.Count -gt 0) {
-          [Line]::new(
-            $CtsLine.LineRef,
-            $CtsLine.LineName,
-            '0x' + $CtsLine.Extension.RouteColor,
-            '0x' + $CtsLine.Extension.RouteTextColor,
-            $Destinations
-          )
+          [Line]::new($StopCache.Lines.($_.Key), $Destinations)
         }
       }
 
       if ($Lines.Count -gt 0) {
-        [Stop]::new($CtsStop.StopPointRef, $CtsStop.StopName, $Lines)
+        [Stop]::new($_.Value, $Lines)
       }
     }
-
-    # Return stops as list
-    Write-Output -InputObject $Stops -NoEnumerate
   }
 }

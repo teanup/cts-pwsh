@@ -3,6 +3,8 @@
 Classes describing simplified CTS types for this module
 #>
 
+using namespace System
+using namespace System.Collections.Generic
 using namespace System.Management.Automation
 
 class Formatted {
@@ -59,20 +61,39 @@ class Formatted {
   }
 }
 
+class StopData {
+  [String] $Id
+  [String] $Name
+  [Dictionary[String, String[]]] $Lines
+}
+
 class Stop {
   [String] $Id
   [String] $Name
   [Line[]] $Lines
 
-  Stop([String]$Id, [String]$Name, [Line[]]$Lines) {
-    $this.Id = $Id
-    $this.Name = $Name
+  Stop([StopData]$StopData, [Line[]]$Lines) {
+    $this.Id = $StopData.Id
+    $this.Name = $StopData.Name
     $this.Lines = $Lines
   }
 
-  [String] ToString() {
-    return "$($this.Name) ($($this.Lines.Name -join ','))"
+  Stop([StopData]$StopData, [Dictionary[String, LineData]]$LineCache) {
+    $this.Id = $StopData.Id
+    $this.Name = $StopData.Name
+    $this.Lines = $StopData.Lines.GetEnumerator().ForEach({ [Line]::new($LineCache.($_.Key), $_.Value) })
   }
+
+  [String] ToString() {
+    return "$($this.Name) ($($this.Lines.Name -join ';'))"
+  }
+}
+
+class LineData {
+  [String] $Name
+  [String] $Description
+  [String] $Background
+  [String] $Foreground
 }
 
 class Line : Formatted {
@@ -81,15 +102,15 @@ class Line : Formatted {
   [String] $Description
   [String[]] $Destinations
 
-  Line([String]$Name, [String]$Description, [String]$Background, [String]$Foreground, [String[]]$Destinations) {
-    $this.Name = $Name
-    $this.Description = $Description
+  Line([LineData]$LineData, [String[]]$Destinations) {
+    $this.Name = $LineData.Name
+    $this.Description = $LineData.Description
     $this.Destinations = $Destinations
 
     $PSStyle = [PSStyle]::Instance
-    $Text = ' ' + $this.Name + ' '
-    $Color = $PSStyle.Background.FromRgb($Background) + $PSStyle.Foreground.FromRgb($Foreground)
-    $this.DisplayName = $PSStyle.Bold + $Color + $Text + $PSStyle.Reset
+    $Background = $PSStyle.Background.FromRgb('0x' + $LineData.Background)
+    $Foreground = $PSStyle.Foreground.FromRgb('0x' + $LineData.Foreground)
+    $this.DisplayName = $PSStyle.Bold + $Background + $Foreground + ' ' + $this.Name + ' ' + $PSStyle.Reset
   }
 
   Line([Line]$Line, [String[]]$Destinations) {
@@ -137,6 +158,12 @@ class DepartureTime : Formatted {
       return $PSStyle.Underline + $TimeText + $PSStyle.UnderlineOff
     }
   }
+}
+
+class StopCache {
+  [DateTime] $ValidUntil
+  [Dictionary[String, StopData]] $Stops
+  [Dictionary[String, LineData]] $Lines
 }
 
 class DepartureCache {

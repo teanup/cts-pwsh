@@ -3,7 +3,7 @@
 Imports classes and functions, defines module-scope variables
 #>
 
-param(
+param (
   [String] $CtsApiKey
 )
 
@@ -33,7 +33,6 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
   }
 }.GetNewClosure()
 
-
 # CTS API token
 $CtsApiKeyPath = $PSScriptRoot | Join-Path -ChildPath 'cts-api.key'
 if ($CtsApiKey) {
@@ -47,5 +46,5 @@ if (-not $CtsApiKey) {
 }
 Set-Variable -Name CtsApiToken -Value $CtsApiKey -Option Constant -Visibility Private -Scope Local
 
-# Cache configuration
-$Script:StopCacheValidFor = [TimeSpan]::FromDays(3)
+# Pre-load stop cache
+$null = Get-CtsStopData

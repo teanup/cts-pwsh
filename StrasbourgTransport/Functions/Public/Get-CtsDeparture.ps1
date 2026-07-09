@@ -13,7 +13,7 @@ function Get-CtsDeparture {
   #>
   [CmdletBinding(DefaultParameterSetName = 'Filters')]
   [OutputType([Departure])]
-  param(
+  param (
     # CTS line names to look up
     [Parameter(ParameterSetName = 'Filters')]
     [ArgumentCompleter([LineCompleter])]
@@ -36,7 +36,7 @@ function Get-CtsDeparture {
 
     # CTS stop objects to use
     [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'Object')]
-    [AllowEmptyCollection()]
+    [AllowNull()]
     [Stop[]] $StopObject,
 
     # Maximum number of departures per line, stop and destination
@@ -52,28 +52,38 @@ function Get-CtsDeparture {
     [Parameter(ParameterSetName = 'Filters', DontShow)]
     [Switch] $NoCacheFile
   )
+  begin {
+    $Stops = [System.Collections.Generic.List[System.Object]]::new()
+  }
   process {
-    if ($PSCmdlet.ParameterSetName -eq 'Filters') {
-      $FindParam = @{
-        Line        = $Line
-        Stop        = $Stop
-        Destination = $Destination
-        Force       = $Force
-        NoCacheFile = $NoCacheFile
+    switch ($PSCmdlet.ParameterSetName) {
+      'Filters' {
+        $FindParam = @{
+          Line        = $Line
+          Stop        = $Stop
+          Destination = $Destination
+          Force       = $Force
+          NoCacheFile = $NoCacheFile
+        }
+        $StopObject = Find-CtsStop @FindParam
       }
-      $StopObject = Find-CtsStop @FindParam
     }
 
-    if ($StopObject.Count -eq 0) {
+    if ($null -ne $StopObject) {
+      $StopObject | ForEach-Object { $Stops.Add([Stop]$_) }
+    }
+  }
+  end {
+    if ($Stops.Count -eq 0) {
       Write-Verbose -Message 'CtsDeparture: No stop found with requested filters'
       return
     }
 
     # Cache 1 extra stop as backup
-    $DepartureData = Get-CtsDepartureData -StopId $StopObject.Id -MinDepartures ($MaxDepartures + 1) -Force:$Force
+    $DepartureData = Get-CtsDepartureData -StopId $Stops.Id -MinDepartures ($MaxDepartures + 1) -Force:$Force
 
     $NotBefore = [DateTime]::Now.AddSeconds(-10)
-    $StopObject | ForEach-Object {
+    $Stops | ForEach-Object {
       $StopId = $_.Id
       $StopName = $_.Name
       $StopDepartureData = $DepartureData | Where-Object { $_.StopId -eq $StopId }

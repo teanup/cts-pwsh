@@ -23,10 +23,10 @@ class CtsCompleter : IArgumentCompleter {
     $this.Results.Clear()
 
     $FindParam = @{
-      Line            = $FakeBoundParameters.Line
-      Stop            = $FakeBoundParameters.Stop
-      Destination     = $FakeBoundParameters.Destination
-      LooseComparison = $true
+      Line        = $FakeBoundParameters.Line
+      Stop        = $FakeBoundParameters.Stop
+      Destination = $FakeBoundParameters.Destination
+      LooseMatch  = $true
     }
     # Unescape quotes for CTS item lookup
     $FindParam.$ParameterName = [Regex]::Unescape($WordToComplete -replace '(^"|"$)|(^''|''$)')
