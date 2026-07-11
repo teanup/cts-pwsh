@@ -1,0 +1,23 @@
+name: Publish Module
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Publish PowerShell module
+        shell: pwsh
+        run: |
+          $PublishPath = New-Item -Path ([System.IO.Path]::GetTempPath()) -Name Publish -ItemType Directory
+          Get-ChildItem -Exclude .* | Copy-Item -Destination $PublishPath -Recurse
+          Publish-PSResource -Path $PublishPath -ApiKey ${{ secrets.PSGALLERY_API_KEY }} -Repository PSGallery

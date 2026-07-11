@@ -2,22 +2,24 @@ name: Code Quality
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  analyze:
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
-    name: PSScriptAnalyzer
-    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout repository
+        uses: actions/checkout@v7
 
       - name: Run PSScriptAnalyzer
         uses: microsoft/psscriptanalyzer-action@v1.1

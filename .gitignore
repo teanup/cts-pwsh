@@ -1,1 +1,5 @@
-cts-api.key
+# CTS API token
+*.key
+
+# Automatic NuGet config
+NuGet/

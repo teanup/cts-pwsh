@@ -34,11 +34,11 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
 }.GetNewClosure()
 
 # CTS API token
-$CtsApiKeyPath = $PSScriptRoot | Join-Path -ChildPath 'cts-api.key'
+$CtsApiKeyPath = $PSScriptRoot | Join-Path -ChildPath '.cts-api.key'
 if ($CtsApiKey) {
   Set-Content -Path $CtsApiKeyPath -Value $CtsApiKey -Force
 } else {
-  $CtsApiKey = Get-Content -Path $CtsApiKeyPath | Select-Object -First 1
+  $CtsApiKey = Get-Content -Path $CtsApiKeyPath -ErrorAction SilentlyContinue | Select-Object -First 1
 }
 if (-not $CtsApiKey) {
   Write-Warning -Message 'Missing CTS API token!'
@@ -47,4 +47,4 @@ if (-not $CtsApiKey) {
 Set-Variable -Name CtsApiToken -Value $CtsApiKey -Option Constant -Visibility Private -Scope Local
 
 # Pre-load stop cache
-$null = Get-CtsStopData
+$null = Get-CtsStopData -ErrorAction SilentlyContinue
