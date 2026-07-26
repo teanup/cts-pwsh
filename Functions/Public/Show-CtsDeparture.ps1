@@ -3,45 +3,46 @@ function Show-CtsDeparture {
   .SYNOPSIS
   Displays the next departures dynamically at the specified CTS stops
   .DESCRIPTION
-  TODO
+  Shows a live-updating table of departures in the terminal (press Ctrl+C to exit).
+  Refreshes automatically at the given interval and redraws in place using ANSI escape codes.
   .EXAMPLE
-  Show-CtsDeparture TODO
+  Show-CtsDeparture -Stop Esplanade -Destination Lingolsheim, Robertsau
   .EXAMPLE
-  Show-CtsDeparture TODO
+  Show-CtsDeparture -Stop 'Homme de Fer' -RefreshRate 10
   #>
   [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Filters')]
   [OutputType([Void])]
   param (
-    # CTS line names to look up
+    # Line names to filter by
     [Parameter(ParameterSetName = 'Filters')]
     [ArgumentCompleter([LineCompleter])]
     [AllowEmptyCollection()]
     [String[]] $Line,
 
-    # CTS stop names to look up
+    # Stop names to filter by (prefix match)
     [Parameter(Position = 0, ParameterSetName = 'Filters')]
     [ArgumentCompleter([StopCompleter])]
     [AllowEmptyCollection()]
     [Alias('From')]
     [String[]] $Stop,
 
-    # CTS destination names to look up
+    # Destination names to filter by (prefix match)
     [Parameter(Position = 1, ParameterSetName = 'Filters')]
     [ArgumentCompleter([DestinationCompleter])]
     [AllowEmptyCollection()]
     [Alias('To')]
     [String[]] $Destination,
 
-    # TODO
+    # Only return destinations that exactly match -Destination, excluding same-direction alternatives
     [Parameter(ParameterSetName = 'Filters')]
     [Switch] $Strict,
 
-    # CTS stop objects to use
+    # Stop objects from Find-CtsStop to display departures for
     [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'Object')]
     [AllowNull()]
     [Stop[]] $StopObject,
 
-    # Maximum number of departures per line, stop and destination
+    # Maximum number of departure times to show per line, stop and destination
     [Parameter()]
     [ValidateRange(1, 8)]
     [Int] $MaxDepartures = 3,
@@ -51,11 +52,11 @@ function Show-CtsDeparture {
     [ValidateRange(1, [Int]::MaxValue)]
     [Int] $RefreshRate = 5,
 
-    # Whether to bypass the stop and departure caches
+    # Bypass the stop and departure caches
     [Parameter(DontShow)]
     [Switch] $Force,
 
-    # Whether to avoid updating the stop cache
+    # Skip writing the cache file to disk
     [Parameter(ParameterSetName = 'Filters', DontShow)]
     [Switch] $NoCacheFile
   )
@@ -86,12 +87,12 @@ function Show-CtsDeparture {
       return
     }
 
+    $LineCount = 0
     $GetParam = @{
       StopObject    = $Stops
       MaxDepartures = $MaxDepartures
       Force         = $Force
     }
-
     while ($true) {
       $LastLineCount = $LineCount
       $LineCount = 0

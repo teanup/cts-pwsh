@@ -3,56 +3,57 @@ function Get-CtsDeparture {
   .SYNOPSIS
   Retrieves the next departures at the specified CTS stops
   .DESCRIPTION
-  TODO
+  Returns [Departure] objects with the upcoming departure times for the stops, lines and destinations matching
+  the given filters. Accepts filter parameters or piped [Stop] objects from Find-CtsStop.
   .EXAMPLE
-  Get-CtsDeparture TODO
+  Get-CtsDeparture -Stop Gare -Destination Rotterdam
   .EXAMPLE
-  Get-CtsDeparture TODO
+  Find-CtsStop Gare | Get-CtsDeparture -MaxDepartures 5
   .OUTPUTS
-  Departure objects for the relevant stops, lines and destinations
+  [Departure] objects for the relevant stops, lines and destinations
   #>
   [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Filters')]
   [OutputType([Departure])]
   param (
-    # CTS line names to look up
+    # Line names to filter by
     [Parameter(ParameterSetName = 'Filters')]
     [ArgumentCompleter([LineCompleter])]
     [AllowEmptyCollection()]
     [String[]] $Line,
 
-    # CTS stop names to look up
+    # Stop names to filter by (prefix match)
     [Parameter(Position = 0, ParameterSetName = 'Filters')]
     [ArgumentCompleter([StopCompleter])]
     [AllowEmptyCollection()]
     [Alias('From')]
     [String[]] $Stop,
 
-    # CTS destination names to look up
+    # Destination names to filter by (prefix match)
     [Parameter(Position = 1, ParameterSetName = 'Filters')]
     [ArgumentCompleter([DestinationCompleter])]
     [AllowEmptyCollection()]
     [Alias('To')]
     [String[]] $Destination,
 
-    # TODO
+    # Only return destinations that exactly match -Destination, excluding same-direction alternatives
     [Parameter(ParameterSetName = 'Filters')]
     [Switch] $Strict,
 
-    # CTS stop objects to use
+    # Stop objects from Find-CtsStop to retrieve departures for
     [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'Object')]
     [AllowNull()]
     [Stop[]] $StopObject,
 
-    # Maximum number of departures per line, stop and destination
+    # Maximum number of departure times to return per line, stop and destination
     [Parameter()]
     [ValidateRange(1, 8)]
     [Int] $MaxDepartures = 3,
 
-    # Whether to bypass the stop and departure caches
+    # Bypass the stop and departure caches
     [Parameter(DontShow)]
     [Switch] $Force,
 
-    # Whether to avoid updating the stop cache
+    # Skip writing the cache file to disk
     [Parameter(ParameterSetName = 'Filters', DontShow)]
     [Switch] $NoCacheFile
   )

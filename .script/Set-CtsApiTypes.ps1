@@ -100,7 +100,6 @@ $null = New-Item -Path $Path -ItemType File -Force -Value @"
 <#
 .SYNOPSIS
 Classes describing types returned by the CTS API
-
 .LINK
 $OpenApiUrl
 #>

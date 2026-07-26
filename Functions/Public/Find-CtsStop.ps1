@@ -3,53 +3,54 @@ function Find-CtsStop {
   .SYNOPSIS
   Finds CTS stops and lines matching filters
   .DESCRIPTION
-  TODO
+  Queries the cached CTS network data and returns [Stop] objects whose name, line and destination match the given
+  filters. Stop, line and destination names are matched by prefix (case-insensitive), so partial names work.
   .EXAMPLE
   Find-CtsStop Gallia Gare, Neuhof, Wolfisheim
-  Returns all 'Gallia' stops with a line in direction of 'Gare...', 'Neuhof...' or 'Wolfisheim...'
+  Returns all stops named 'Gallia...' with a line heading towards 'Gare...', 'Neuhof...' or 'Wolfisheim...'
   .EXAMPLE
   Find-CtsStop -Line A, D -Destination Kehl, Illkirch -Strict
   Returns all stops for lines 'A' and 'D' with the only destinations 'Kehl...' and 'Illkirch...'
   Destinations with the same direction are excluded: 'Port du Rhin', 'Les Halles'
   .OUTPUTS
-  Stop objects with the relevant lines and destinations
+  [Stop] objects with the relevant lines and destinations
   #>
   [CmdletBinding(SupportsShouldProcess)]
   [OutputType([Stop])]
   param (
-    # CTS line names to look up
+    # Line names to filter by
     [Parameter()]
     [ArgumentCompleter([LineCompleter])]
     [AllowEmptyCollection()]
     [String[]] $Line,
 
-    # CTS stop names to look up
+    # Stop names to filter by (prefix match)
     [Parameter(Position = 0)]
     [ArgumentCompleter([StopCompleter])]
     [AllowEmptyCollection()]
     [Alias('From')]
     [String[]] $Stop,
 
-    # CTS destination names to look up
+    # Destination names to filter by (prefix match)
     [Parameter(Position = 1)]
     [ArgumentCompleter([DestinationCompleter])]
     [AllowEmptyCollection()]
     [Alias('To')]
     [String[]] $Destination,
 
-    # TODO
+    # Only return destinations that exactly match -Destination, excluding same-direction alternatives
     [Parameter()]
     [Switch] $Strict,
 
-    # TODO
+    # Enable loose prefix matching for argument completion (internal)
     [Parameter(DontShow)]
     [Switch] $Completion,
 
-    # Whether to bypass the stop and departure caches
+    # Bypass the stop cache and fetch fresh data from the API
     [Parameter(DontShow)]
     [Switch] $Force,
 
-    # Whether to avoid updating the stop cache
+    # Skip writing the cache file to disk
     [Parameter(DontShow)]
     [Switch] $NoCacheFile
   )

@@ -3,23 +3,24 @@ function Invoke-CtsApi {
   .SYNOPSIS
   Performs a request to the CTS API
   .DESCRIPTION
-  TODO
+  Sends a GET request to the CTS API at the given endpoint path, builds the query string from the provided hashtable
+  (array values become duplicate parameters), and authenticates with the module's API token.
   .EXAMPLE
-  Invoke-CtsApi TODO
+  Invoke-CtsApi -Path 'siri/2.0/stoppoints-discovery' -Query @{ IncludeLinesDestinations = $true }
   .EXAMPLE
-  Invoke-CtsApi TODO
+  Invoke-CtsApi -Path 'siri/2.0/stop-monitoring' -Query @{ MonitoringRef = 'PARLE_05'; MinimumStopVisitsPerLine = 3 }
   .OUTPUTS
   Response parsed as a custom object
   #>
   [CmdletBinding()]
   [OutputType([PSCustomObject])]
   param (
-    # Path to the CTS api endpoint to query
+    # Path to the CTS API endpoint to query
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [String] $Path,
 
-    # Optional query parameters to append to the request
+    # Query parameters to append to the request URL
     [Parameter()]
     [AllowNull()]
     [Hashtable] $Query,
@@ -50,19 +51,24 @@ function Invoke-CtsApi {
     }
     $UriBuilder.Query = $QueryString.ToString()
 
+    # Token goes in username field
     $RequestParam = @{
       Method         = 'Get'
       Uri            = $UriBuilder.ToString()
       Authentication = 'Basic'
       Credential     = [PSCredential]::new($Token, [SecureString]::new())
     }
-    $Response = Invoke-RestMethod @RequestParam
 
     try {
-      $CtsError = [CtsError]$Response
-      return $CtsError.error
+      $Response = Invoke-RestMethod @RequestParam
+      $CtsError = ($Response -as [CtsError]).error
+      if ($null -eq $CtsError) {
+        $Response
+      } else {
+        Write-Error -Message "API Error: $CtsError"
+      }
     } catch {
-      return $Response
+      $PSCmdlet.ThrowTerminatingError($_)
     }
   }
 }

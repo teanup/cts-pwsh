@@ -1,42 +1,43 @@
 function Update-CtsDepartureCache {
   <#
   .SYNOPSIS
-  Retrieves the raw CTS stop departures and caches it locally
+  Retrieves CTS stop departures and caches them in memory
   .DESCRIPTION
-  TODO
+  Fetches real-time departures for the given stop IDs from the CTS API and stores them in the singleton
+  [DepartureCache] instance. Only stops whose cached data has expired are refreshed, unless -Force is used.
   .EXAMPLE
-  Update-CtsDepartureCache TODO
+  Update-CtsDepartureCache -StopId 'HOFER_05', 'OBSER_05'
   .EXAMPLE
-  Update-CtsDepartureCache TODO
+  Update-CtsDepartureCache -StopId 'CAILL_04' -MinDepartures 5 -Force
   #>
   [CmdletBinding(SupportsShouldProcess)]
+  [OutputType([Void])]
   param (
     # IDs of the CTS stops to query
     [Parameter()]
     [AllowEmptyCollection()]
-    [ValidatePattern('^\w{6,10}$')]
     [String[]] $StopId,
 
-    # Number of departures to query
+    # Minimum number of departures to fetch per line
     [Parameter()]
     [ValidateRange(1, 10)]
     [Int] $MinDepartures = 3,
 
-    # Whether to bypass the departure cache
+    # Bypass the departure cache and refresh all specified stops
     [Parameter()]
     [Switch] $Force
   )
   process {
-    $ExpiredStopId = $Force ? $StopId : $StopId | Where-Object {
-      $Departures = [DepartureCache]::Instance.Departures[$_]
-      $Force -or $Departures.Count -eq 0 -or $Departures[0].ValidUntil -lt [DateTime]::Now
+    $ExpiredId = $StopId | Where-Object {
+      $Departure = [DepartureCache]::Instance.Departures[$_] | Select-Object -First 1
+      $Force -or $null -eq $Departure -or $Departure.ValidUntil -lt [DateTime]::Now
     }
 
-    if ($ExpiredStopId.Count -gt 0 -and ($Force -or $PSCmdlet.ShouldProcess($ExpiredStopId, 'Refresh stop departures'))) {
+    if ($ExpiredId.Count -gt 0 -and ($Force -or $PSCmdlet.ShouldProcess($ExpiredId, 'Refresh stop departures'))) {
       try {
-        Write-Verbose -Message "CtsDeparture: Fetching departures for $($ExpiredStopId.Count) stops"
+        Write-Verbose -Message "CtsDeparture: Fetching departures for $($ExpiredId.Count) stops"
         $Response = Invoke-CtsApi -Path 'siri/2.0/stop-monitoring' -Query @{
-          MonitoringRef            = $ExpiredStopId
+          MonitoringRef            = $ExpiredId
           MinimumStopVisitsPerLine = $MinDepartures
         }
         [CtsStopMonitoringDelivery]$StopMonitoring = $Response.ServiceDelivery.StopMonitoringDelivery[0]

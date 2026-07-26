@@ -8,7 +8,7 @@ using namespace System.Collections.Generic
 using namespace System.Collections.Concurrent
 using namespace System.Management.Automation
 
-# Abstract class to format strings with ANSI codes
+# Base class for objects whose string representation includes ANSI escape codes
 class Formatted {
   [Int] VisibleLength() {
     return [Formatted]::VisibleLength($this.ToString())
@@ -50,14 +50,14 @@ class Formatted {
   }
 }
 
-# File cache of CTS network information: stops, lines, destinations
+# Serializable snapshot of the stop cache for disk persistence
 class StopFileCache {
   [DateTime] $ValidUntil
   [StopInfo[]] $Stops
   [LineRawInfo[]] $Lines
 }
 
-# File cache of CTS line details and destinations
+# Raw line data from the API response
 class LineRawInfo {
   [String] $Id
   [String] $Name
@@ -66,7 +66,15 @@ class LineRawInfo {
   [List[Destination]] $Destinations
 }
 
-# Cached CTS network information: stops, lines, destinations
+# A destination served by a line at a given set of stops
+class Destination {
+  [String] $Line
+  [Byte] $Direction
+  [String] $Name
+  [List[String]] $Stops
+}
+
+# Singleton in-memory cache of all stops, lines and destinations
 class StopCache {
   [DateTime] $ValidUntil
   [ConcurrentDictionary[String, StopInfo]] $Stops
@@ -93,11 +101,7 @@ class StopCache {
   }
 }
 
-class StopInfo {
-  [String] $Id
-  [String] $Name
-}
-
+# Display metadata for a line
 class LineInfo {
   [String] $Name
   [String] $DisplayName
@@ -114,41 +118,7 @@ class LineInfo {
   }
 }
 
-class Destination {
-  [String] $Line
-  [Byte] $Direction
-  [String] $Name
-  [List[String]] $Stops
-}
-
-class Stop {
-  [String] $Id
-  [String] $Name
-  [Line[]] $Lines
-  hidden [StopInfo] $StopInfo
-  hidden static [Hashtable] $DynamicProperty = @{
-    Id   = { $this.StopInfo.Id }
-    Name = { $this.StopInfo.Name }
-  }
-
-  hidden static Stop() {
-    $UpdateParam = @{
-      TypeName   = [Stop].Name
-      MemberType = 'ScriptProperty'
-      Force      = $true
-      WhatIf     = $false
-      Confirm    = $false
-    }
-    [Stop]::DynamicProperty.GetEnumerator() | ForEach-Object {
-      Update-TypeData @UpdateParam -MemberName $_.Key -Value $_.Value
-    }
-  }
-
-  [String] ToString() {
-    return $this.Name + ' (' + ($this.Lines.Name -join ';') + ')'
-  }
-}
-
+# A transport line with its display label and destinations
 class Line : Formatted {
   [String] $Name
   [String] $DisplayName
@@ -179,7 +149,42 @@ class Line : Formatted {
   }
 }
 
-# Cached departure data for a given stop
+# Raw stop data from the API response
+class StopInfo {
+  [String] $Id
+  [String] $Name
+}
+
+# A physical stop with its associated lines
+class Stop {
+  [String] $Id
+  [String] $Name
+  [Line[]] $Lines
+  hidden [StopInfo] $StopInfo
+  hidden static [Hashtable] $DynamicProperty = @{
+    Id   = { $this.StopInfo.Id }
+    Name = { $this.StopInfo.Name }
+  }
+
+  hidden static Stop() {
+    $UpdateParam = @{
+      TypeName   = [Stop].Name
+      MemberType = 'ScriptProperty'
+      Force      = $true
+      WhatIf     = $false
+      Confirm    = $false
+    }
+    [Stop]::DynamicProperty.GetEnumerator() | ForEach-Object {
+      Update-TypeData @UpdateParam -MemberName $_.Key -Value $_.Value
+    }
+  }
+
+  [String] ToString() {
+    return $this.Name + ' (' + ($this.Lines.Name -join ';') + ')'
+  }
+}
+
+# Singleton in-memory cache of real-time departures per stop
 class DepartureCache {
   [ConcurrentDictionary[String, List[DepartureInfo]]] $Departures
   hidden static [DepartureCache] $DepartureCache = [DepartureCache]::new()
@@ -194,7 +199,7 @@ class DepartureCache {
   }
 }
 
-# Departure times and information for a given stop, line, destination
+# Cached departure data for a single line-destination pair
 class DepartureInfo {
   [DateTime] $ValidUntil
   [String] $Line
@@ -202,12 +207,14 @@ class DepartureInfo {
   [DepartureTime[]] $Times
 }
 
+# A departure event for a stop, line and destination
 class Departure {
   [String] $Stop
   [Line] $Line
   [DepartureTime[]] $Times
 }
 
+# A single departure time, either live or scheduled
 class DepartureTime : Formatted {
   [DateTime] $Time
   [Bool] $Live

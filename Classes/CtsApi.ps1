@@ -1,7 +1,6 @@
 <#
 .SYNOPSIS
 Classes describing types returned by the CTS API
-
 .LINK
 https://api.cts-strasbourg.eu/v1/swagger.json
 #>

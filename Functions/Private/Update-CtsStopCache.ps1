@@ -1,21 +1,24 @@
 function Update-CtsStopCache {
   <#
   .SYNOPSIS
-  Retrieves the raw CTS stop list and caches it locally
+  Retrieves the CTS stop list and caches it in memory and on disk
   .DESCRIPTION
-  TODO
+  Fetches all CTS stops, lines and destinations from the API and indexes them in the singleton [StopCache] instance.
+  The result is also persisted to a JSON file in the temp directory so subsequent sessions can skip the API call.
   .EXAMPLE
-  Update-CtsStopCache TODO
+  Update-CtsStopCache
   .EXAMPLE
-  Update-CtsStopCache TODO
+  Update-CtsStopCache -Force
+  Bypasses the file cache and fetches fresh data from the API.
   #>
   [CmdletBinding(SupportsShouldProcess)]
+  [OutputType([Void])]
   param (
-    # Whether to bypass the stop cache
+    # Bypass both the in-memory and file caches, fetch fresh data from the API
     [Parameter()]
     [Switch] $Force,
 
-    # Whether to avoid updating the stop cache
+    # Skip writing the cache file to disk (in-memory cache only)
     [Parameter()]
     [Switch] $NoCacheFile
   )
@@ -32,8 +35,8 @@ function Update-CtsStopCache {
       }
     } else {
       if (Test-Path -Path $FileCachePath) {
-        # Load file cache if available
         try {
+          # Load file cache if available
           [StopFileCache]$FileCache = Get-Content -Path $FileCachePath -Raw | ConvertFrom-Json -AsHashtable
 
           if ($FileCache.ValidUntil -lt [DateTime]::Now) {
@@ -60,9 +63,9 @@ function Update-CtsStopCache {
       }
     }
 
-    if ($Force -or $Refresh) {
-      # Refresh stop cache
+    if ($Force -or ($Refresh -and $PSCmdlet.ShouldProcess('Memory cache', 'Refresh stop cache'))) {
       try {
+        # Refresh stop cache
         $Response = Invoke-CtsApi -Path 'siri/2.0/stoppoints-discovery' -Query @{ IncludeLinesDestinations = $true }
         [CtsStopPointsDelivery]$StopPoints = $Response.StopPointsDelivery
 
@@ -123,21 +126,25 @@ function Update-CtsStopCache {
             [StopCache]::Instance.Stops[$Stop.Id] = $Stop
           }
         }
+        [StopCache]::Instance.Ready = $true
 
-        if (-not $NoCacheFile) {
+        # Update file cache
+        if (-not $NoCacheFile -and ($Force -or $PSCmdlet.ShouldProcess($FileCachePath, 'Replace file cache'))) {
           $FileCache = [StopFileCache]@{
             ValidUntil = [StopCache]::Instance.ValidUntil
             Stops      = [StopCache]::Instance.Stops.Values
             Lines      = $LineCache.Values
           }
           $FileCache.Lines | ForEach-Object { $_.Destinations = [StopCache]::Instance.Destinations[$_.Id] }
-          if ($Force -or $PSCmdlet.ShouldProcess($FileCachePath, 'Create/replace stop cache')) {
-            $FileCache | ConvertTo-Json -Depth 100 -Compress | Set-Content -Path $FileCachePath -Force -WhatIf:$false -Confirm:$false
-            Write-Verbose -Message "CtsStop: Updated cache: $FileCachePath"
+          $SetParam = @{
+            Path    = $FileCachePath
+            Force   = true
+            WhatIf  = $false
+            Confirm = $false
           }
+          $FileCache | ConvertTo-Json -Depth 100 -Compress | Set-Content @SetParam
+          Write-Verbose -Message "CtsStop: Updated cache: $FileCachePath"
         }
-
-        [StopCache]::Instance.Ready = $true
       } catch {
         $PSCmdlet.ThrowTerminatingError($_)
       }
