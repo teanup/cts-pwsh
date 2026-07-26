@@ -14,7 +14,7 @@ function Find-CtsStop {
   .OUTPUTS
   Stop objects with the relevant lines and destinations
   #>
-  [CmdletBinding()]
+  [CmdletBinding(SupportsShouldProcess)]
   [OutputType([Stop])]
   param (
     # CTS line names to look up
@@ -55,18 +55,20 @@ function Find-CtsStop {
   )
   process {
     try {
-      $StopCache = Get-CtsStopData -Force:$Force -NoCacheFile:$NoCacheFile
+      Update-CtsStopCache -Force:$Force -NoCacheFile:$NoCacheFile
     } catch {
       $PSCmdlet.ThrowTerminatingError($_)
     }
 
     $StringComparison = [System.StringComparison]::CurrentCultureIgnoreCase
-    $Destinations = $StopCache.Destinations.GetEnumerator() | Where-Object {
+    $Destinations = [StopCache]::Instance.Destinations.GetEnumerator() | Where-Object {
       $LineName = $_.Key
-      # Loose match only for argument completions
-      $Line.Count -eq 0 -or $Line.Where({
-          $Completion ? $LineName.StartsWith($_, $StringComparison) : $LineName -eq $_
-        }).Count -gt 0
+      # Loose match only for argument completion
+      if ($Completion) {
+        $Line.Count -eq 0 -or $Line.Where({ $LineName.StartsWith($_, $StringComparison) }).Count -gt 0
+      } else {
+        $Line.Count -eq 0 -or $Line -contains $LineName
+      }
     } | ForEach-Object {
       $Dest = $_.Value.GetEnumerator() | Where-Object {
         $DestName = $_.Name
@@ -80,16 +82,20 @@ function Find-CtsStop {
         $_.Value.GetEnumerator() | Where-Object { $_.Direction -in $Directions }
       }
     }
-    $Stops = $Destinations.Stops | Select-Object -Unique | ForEach-Object { $StopCache.Stops[$_] } | Where-Object {
+    $Stops = $Destinations.Stops | Select-Object -Unique | ForEach-Object {
+      [StopCache]::Instance.Stops[$_]
+    } | Where-Object {
       $StopName = $_.Name
       $Stop.Count -eq 0 -or $Stop.Where({ $StopName.StartsWith($_, $StringComparison) }).Count -gt 0
     }
 
     $Stops | ForEach-Object {
       $StopId = $_.Id
-      $Lines = $Destinations | Where-Object { $_.Stops.Contains($StopId) } | Group-Object -Property Line | ForEach-Object {
+      $Lines = $Destinations | Where-Object {
+        $_.Stops.Contains($StopId)
+      } | Group-Object -Property Line | ForEach-Object {
         [Line]@{
-          LineInfo     = $StopCache.Lines[$_.Name]
+          LineInfo     = [StopCache]::Instance.Lines[$_.Name]
           Destinations = $_.Group.Name
         }
       }

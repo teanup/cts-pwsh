@@ -1,18 +1,15 @@
-function Get-CtsDepartureData {
+function Update-CtsDepartureCache {
   <#
   .SYNOPSIS
   Retrieves the raw CTS stop departures and caches it locally
   .DESCRIPTION
   TODO
   .EXAMPLE
-  Get-CtsDepartureData TODO
+  Update-CtsDepartureCache TODO
   .EXAMPLE
-  Get-CtsDepartureData TODO
-  .OUTPUTS
-  DepartureData objects with departure data for the specified stops
+  Update-CtsDepartureCache TODO
   #>
-  [CmdletBinding()]
-  [OutputType([DepartureCache])]
+  [CmdletBinding(SupportsShouldProcess)]
   param (
     # IDs of the CTS stops to query
     [Parameter()]
@@ -30,20 +27,12 @@ function Get-CtsDepartureData {
     [Switch] $Force
   )
   process {
-    if ($null -eq $Script:DepartureCache) {
-      $Script:DepartureCache = [DepartureCache]::new()
-    }
-
     $ExpiredStopId = $Force ? $StopId : $StopId | Where-Object {
-      [System.Collections.Generic.List[DepartureInfo]]$Departures = $null
-      if ($Force -or -not $Script:DepartureCache.Departures.TryGetValue($_, [Ref]$Departures)) {
-        $true
-      } else {
-        $Departures.ValidUntil -lt [DateTime]::Now
-      }
+      $Departures = [DepartureCache]::Instance.Departures[$_]
+      $Force -or $Departures.Count -eq 0 -or $Departures[0].ValidUntil -lt [DateTime]::Now
     }
 
-    if ($ExpiredStopId.Count -gt 0) {
+    if ($ExpiredStopId.Count -gt 0 -and ($Force -or $PSCmdlet.ShouldProcess($ExpiredStopId, 'Refresh stop departures'))) {
       try {
         Write-Verbose -Message "CtsDeparture: Fetching departures for $($ExpiredStopId.Count) stops"
         $Response = Invoke-CtsApi -Path 'siri/2.0/stop-monitoring' -Query @{
@@ -63,8 +52,7 @@ function Get-CtsDepartureData {
       }
 
       $StopMonitoring.MonitoredStopVisit | Group-Object -Property MonitoringRef | ForEach-Object {
-        $StopId = $_.Name
-        $Script:DepartureCache.Departures[$StopId] = $_.Group.MonitoredVehicleJourney | Group-Object -Property {
+        $Departures = $_.Group.MonitoredVehicleJourney | Group-Object -Property {
           $_.LineRef + "`n" + $_.DestinationName
         } | ForEach-Object {
           $Line, $Destination = $_.Name -split '\n'
@@ -80,9 +68,8 @@ function Get-CtsDepartureData {
             }
           }
         }
+        [DepartureCache]::Instance.Departures[$_.Name] = $Departures
       }
     }
-
-    $Script:DepartureCache
   }
 }

@@ -9,7 +9,7 @@ function Show-CtsDeparture {
   .EXAMPLE
   Show-CtsDeparture TODO
   #>
-  [CmdletBinding(DefaultParameterSetName = 'Filters')]
+  [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Filters')]
   [OutputType([Void])]
   param (
     # CTS line names to look up
@@ -31,6 +31,10 @@ function Show-CtsDeparture {
     [AllowEmptyCollection()]
     [Alias('To')]
     [String[]] $Destination,
+
+    # TODO
+    [Parameter(ParameterSetName = 'Filters')]
+    [Switch] $Strict,
 
     # CTS stop objects to use
     [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'Object')]
@@ -64,6 +68,7 @@ function Show-CtsDeparture {
         Line        = $Line
         Stop        = $Stop
         Destination = $Destination
+        Strict      = $Strict
         Force       = $Force
         NoCacheFile = $NoCacheFile
       }

@@ -44,4 +44,4 @@ if (-not $CtsApiKey) {
 Set-Variable -Name CtsApiToken -Value $CtsApiKey -Option Constant -Visibility Private -Scope Local
 
 # Pre-load stop cache
-$null = Get-CtsStopData -ErrorAction SilentlyContinue
+Update-CtsStopCache -ErrorAction SilentlyContinue

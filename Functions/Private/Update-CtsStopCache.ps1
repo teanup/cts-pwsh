@@ -1,18 +1,15 @@
-function Get-CtsStopData {
+function Update-CtsStopCache {
   <#
   .SYNOPSIS
   Retrieves the raw CTS stop list and caches it locally
   .DESCRIPTION
   TODO
   .EXAMPLE
-  Get-CtsStopData TODO
+  Update-CtsStopCache TODO
   .EXAMPLE
-  Get-CtsStopData TODO
-  .OUTPUTS
-  CtsAnnotatedStopPointStructure objects with stop data for all stops
+  Update-CtsStopCache TODO
   #>
-  [CmdletBinding()]
-  [OutputType([StopCache])]
+  [CmdletBinding(SupportsShouldProcess)]
   param (
     # Whether to bypass the stop cache
     [Parameter()]
@@ -24,64 +21,53 @@ function Get-CtsStopData {
   )
   process {
     $FileCachePath = [System.IO.Path]::GetTempPath() | Join-Path -ChildPath 'cts-stop-cache.json'
-    $NeedsCacheRefresh = $false
+    $Refresh = $false
 
     if ($Force) {
       Write-Verbose -Message 'CtsStop: Refreshing cache'
-    } elseif ($null -eq $Script:StopCache) {
-      # Use file cache if available
+    } elseif ([StopCache]::Instance.Ready) {
+      if ([StopCache]::Instance.ValidUntil -lt [DateTime]::Now) {
+        Write-Verbose -Message 'CtsStop: Cache has expired'
+        $Refresh = $true
+      }
+    } else {
       if (Test-Path -Path $FileCachePath) {
+        # Load file cache if available
         try {
           [StopFileCache]$FileCache = Get-Content -Path $FileCachePath -Raw | ConvertFrom-Json -AsHashtable
 
           if ($FileCache.ValidUntil -lt [DateTime]::Now) {
             Write-Verbose -Message 'CtsStop: Cache has expired'
-            $NeedsCacheRefresh = $true
+            $Refresh = $true
           } else {
-            Write-Verbose -Message "CtsStop: Using cache: $FileCachePath"
-
             # Index stops and lines
-            $StopCache = [StopCache]@{ ValidUntil = $FileCache.ValidUntil }
-            $FileCache.Stops | ForEach-Object {
-              if (-not $StopCache.Stops.TryAdd($_.Id, $_)) {
-                Write-Error -Message "Failed to add stop '$($_.Id)' to cache"
-              }
-            }
+            Write-Verbose -Message "CtsStop: Using cache: $FileCachePath"
+            [StopCache]::Instance.Init($FileCache.ValidUntil)
+            $FileCache.Stops | ForEach-Object { [StopCache]::Instance.Stops[$_.Id] = $_ }
             $FileCache.Lines | ForEach-Object {
-              if (-not $StopCache.Lines.TryAdd($_.Id, $_)) {
-                Write-Error -Message "Failed to add line '$($_.Id)' to cache"
-              }
-              if (-not $StopCache.Destinations.TryAdd($_.Id, $_.Destinations)) {
-                Write-Error -Message "Failed to add destinations of line '$($_.Id)' to cache"
-              }
+              [StopCache]::Instance.Lines[$_.Id] = $_
+              [StopCache]::Instance.Destinations[$_.Id] = $_.Destinations
             }
-
-            $Script:StopCache = $StopCache
+            [StopCache]::Instance.Ready = $true
           }
         } catch {
           Write-Warning -Message "CtsStop: Error loading cache: $($_.Exception.Message)"
-          $NeedsCacheRefresh = $true
+          $Refresh = $true
         }
       } else {
         Write-Verbose -Message 'CtsStop: Cache not found'
-        $NeedsCacheRefresh = $true
-      }
-    } else {
-      if ($Script:StopCache.ValidUntil -lt [DateTime]::Now) {
-        Write-Verbose -Message 'CtsStop: Cache has expired'
-        $NeedsCacheRefresh = $true
+        $Refresh = $true
       }
     }
 
-    # Refresh stop cache
-    if ($Force -or $NeedsCacheRefresh) {
+    if ($Force -or $Refresh) {
+      # Refresh stop cache
       try {
         $Response = Invoke-CtsApi -Path 'siri/2.0/stoppoints-discovery' -Query @{ IncludeLinesDestinations = $true }
-        # $Response = Get-Content -Raw -Path '/workspaces/cts-pwsh/NuGet/stop-points-discovery.json' | ConvertFrom-Json
         [CtsStopPointsDelivery]$StopPoints = $Response.StopPointsDelivery
 
         $LineCache = [System.Collections.Concurrent.ConcurrentDictionary[String, LineRawInfo]]::new()
-        $StopCache = [StopCache]@{ ValidUntil = $StopPoints.ResponseTimestamp.AddDays(7) }
+        [StopCache]::Instance.Init($StopPoints.ResponseTimestamp.AddDays(7))
 
         $StopPoints.AnnotatedStopPointRef | ForEach-Object {
           $Stop = [StopInfo]@{
@@ -107,11 +93,9 @@ function Get-CtsStopData {
                   Name      = $_
                   Stops     = $Stop.Id
                 }
-                if (-not $StopCache.Destinations.TryAdd($Destination.Line, $Destination)) {
-                  [System.Collections.Generic.List[Destination]]$Destinations = $null
-                  if (-not $StopCache.Destinations.TryGetValue($Destination.Line, [Ref]$Destinations)) {
-                    Write-Error -Message "Failed to get destinations of line '$($Destination.Line)' from cache"
-                  }
+                # Add or update line destinations
+                if (-not [StopCache]::Instance.Destinations.TryAdd($Destination.Line, $Destination)) {
+                  $Destinations = [StopCache]::Instance.Destinations[$Destination.Line]
                   $IsNewDest = $true
                   foreach ($Dest in $Destinations) {
                     if ($Dest.Direction -eq $Destination.Direction -and $Dest.Name -eq $Destination.Name) {
@@ -128,44 +112,35 @@ function Get-CtsStopData {
               }
             }
             if ($IncludeLine) {
+              # Use line cache as reference
               if ($LineCache.TryAdd($RawLine.Id, $RawLine)) {
-                if (-not $StopCache.Lines.TryAdd($RawLine.Id, $RawLine)) {
-                  Write-Error -Message "Failed to add line '$($RawLine.Id)' to cache"
-                }
+                [StopCache]::Instance.Lines[$RawLine.Id] = $RawLine
               }
               $IncludeStop += $true
             }
           }
           if ($IncludeStop) {
-            if (-not $StopCache.Stops.TryAdd($Stop.Id, $Stop)) {
-              Write-Error -Message "Failed to add stop '$($Stop.Id)' to cache"
-            }
+            [StopCache]::Instance.Stops[$Stop.Id] = $Stop
           }
         }
 
         if (-not $NoCacheFile) {
           $FileCache = [StopFileCache]@{
-            ValidUntil = $StopCache.ValidUntil
-            Stops      = $StopCache.Stops.Values
+            ValidUntil = [StopCache]::Instance.ValidUntil
+            Stops      = [StopCache]::Instance.Stops.Values
             Lines      = $LineCache.Values
           }
-          $FileCache.Lines | ForEach-Object {
-            [Destination[]]$Destinations = $null
-            if (-not $StopCache.Destinations.TryGetValue($_.Id, [Ref]$Destinations)) {
-              Write-Error -Message "Failed to get destinations of line '$($_.Id)' from cache"
-            }
-            $_.Destinations = $Destinations
+          $FileCache.Lines | ForEach-Object { $_.Destinations = [StopCache]::Instance.Destinations[$_.Id] }
+          if ($Force -or $PSCmdlet.ShouldProcess($FileCachePath, 'Create/replace stop cache')) {
+            $FileCache | ConvertTo-Json -Depth 100 -Compress | Set-Content -Path $FileCachePath -Force -WhatIf:$false -Confirm:$false
+            Write-Verbose -Message "CtsStop: Updated cache: $FileCachePath"
           }
-          $FileCache | ConvertTo-Json -Depth 100 -Compress | Set-Content -Path $FileCachePath -Force
-          Write-Verbose -Message "CtsStop: Updated cache: $FileCachePath"
         }
 
-        $Script:StopCache = $StopCache
+        [StopCache]::Instance.Ready = $true
       } catch {
         $PSCmdlet.ThrowTerminatingError($_)
       }
     }
-
-    $Script:StopCache
   }
 }

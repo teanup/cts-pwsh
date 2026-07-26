@@ -11,7 +11,7 @@ function Get-CtsDeparture {
   .OUTPUTS
   Departure objects for the relevant stops, lines and destinations
   #>
-  [CmdletBinding(DefaultParameterSetName = 'Filters')]
+  [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Filters')]
   [OutputType([Departure])]
   param (
     # CTS line names to look up
@@ -33,6 +33,10 @@ function Get-CtsDeparture {
     [AllowEmptyCollection()]
     [Alias('To')]
     [String[]] $Destination,
+
+    # TODO
+    [Parameter(ParameterSetName = 'Filters')]
+    [Switch] $Strict,
 
     # CTS stop objects to use
     [Parameter(Mandatory, ValueFromPipeline, ParameterSetName = 'Object')]
@@ -61,6 +65,7 @@ function Get-CtsDeparture {
         Line        = $Line
         Stop        = $Stop
         Destination = $Destination
+        Strict      = $Strict
         Force       = $Force
         NoCacheFile = $NoCacheFile
       }
@@ -80,7 +85,7 @@ function Get-CtsDeparture {
 
     try {
       # Cache 1 extra departure as backup
-      $DepartureCache = Get-CtsDepartureData -StopId $Stops.Id -MinDepartures ($MaxDepartures + 1) -Force:$Force
+      Update-CtsDepartureCache -StopId $Stops.Id -MinDepartures ($MaxDepartures + 1) -Force:$Force
     } catch {
       $PSCmdlet.ThrowTerminatingError($_)
     }
@@ -88,7 +93,7 @@ function Get-CtsDeparture {
     $NotBefore = [DateTime]::Now.AddSeconds(-10)
     $Stops | ForEach-Object {
       $StopName = $_.Name
-      $Departures = $DepartureCache.Departures[$_.Id] | Group-Object -Property Line
+      $Departures = [DepartureCache]::Instance.Departures[$_.Id] | Group-Object -Property Line
       $_.Lines | ForEach-Object {
         $StopLine = $_
         $Departures.Where({ $_.Name -eq $StopLine.Name }).Group | Where-Object {

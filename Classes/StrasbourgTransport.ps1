@@ -69,9 +69,28 @@ class LineRawInfo {
 # Cached CTS network information: stops, lines, destinations
 class StopCache {
   [DateTime] $ValidUntil
-  [ConcurrentDictionary[String, StopInfo]] $Stops = [ConcurrentDictionary[String, StopInfo]]::new()
-  [ConcurrentDictionary[String, LineInfo]] $Lines = [ConcurrentDictionary[String, LineInfo]]::new()
-  [ConcurrentDictionary[String, List[Destination]]] $Destinations = [ConcurrentDictionary[String, List[Destination]]]::new()
+  [ConcurrentDictionary[String, StopInfo]] $Stops
+  [ConcurrentDictionary[String, LineInfo]] $Lines
+  [ConcurrentDictionary[String, List[Destination]]] $Destinations
+  [Bool] $Ready
+  hidden static [StopCache] $StopCache = [StopCache]::new()
+  static [StopCache] $Instance = [StopCache]::Get()
+
+  hidden StopCache() {
+    $this.Init(0)
+  }
+
+  hidden static [StopCache] Get() {
+    return [StopCache]::StopCache
+  }
+
+  Init([DateTime]$ValidUntil) {
+    $this.ValidUntil = $ValidUntil
+    $this.Ready = $false
+    $this.Stops = [ConcurrentDictionary[String, StopInfo]]::new()
+    $this.Lines = [ConcurrentDictionary[String, LineInfo]]::new()
+    $this.Destinations = [ConcurrentDictionary[String, List[Destination]]]::new()
+  }
 }
 
 class StopInfo {
@@ -113,9 +132,15 @@ class Stop {
   }
 
   hidden static Stop() {
-    $TypeName = [Stop].Name
-    foreach ($Prop in [Stop]::DynamicProperty.GetEnumerator()) {
-      Update-TypeData -TypeName $TypeName -MemberType ScriptProperty -MemberName $Prop.Key -Value $Prop.Value -Force
+    $UpdateParam = @{
+      TypeName   = [Stop].Name
+      MemberType = 'ScriptProperty'
+      Force      = $true
+      WhatIf     = $false
+      Confirm    = $false
+    }
+    [Stop]::DynamicProperty.GetEnumerator() | ForEach-Object {
+      Update-TypeData @UpdateParam -MemberName $_.Key -Value $_.Value
     }
   }
 
@@ -137,9 +162,15 @@ class Line : Formatted {
   }
 
   hidden static Line() {
-    $TypeName = [Line].Name
-    foreach ($Prop in [Line]::DynamicProperty.GetEnumerator()) {
-      Update-TypeData -TypeName $TypeName -MemberType ScriptProperty -MemberName $Prop.Key -Value $Prop.Value -Force
+    $UpdateParam = @{
+      TypeName   = [Line].Name
+      MemberType = 'ScriptProperty'
+      Force      = $true
+      WhatIf     = $false
+      Confirm    = $false
+    }
+    [Line]::DynamicProperty.GetEnumerator() | ForEach-Object {
+      Update-TypeData @UpdateParam -MemberName $_.Key -Value $_.Value
     }
   }
 
@@ -150,7 +181,17 @@ class Line : Formatted {
 
 # Cached departure data for a given stop
 class DepartureCache {
-  [ConcurrentDictionary[String, List[DepartureInfo]]] $Departures = [ConcurrentDictionary[String, List[DepartureInfo]]]::new()
+  [ConcurrentDictionary[String, List[DepartureInfo]]] $Departures
+  hidden static [DepartureCache] $DepartureCache = [DepartureCache]::new()
+  static [DepartureCache] $Instance = [DepartureCache]::Get()
+
+  hidden DepartureCache() {
+    $this.Departures = [ConcurrentDictionary[String, List[DepartureInfo]]]::new()
+  }
+
+  hidden static [DepartureCache] Get() {
+    return [DepartureCache]::DepartureCache
+  }
 }
 
 # Departure times and information for a given stop, line, destination
