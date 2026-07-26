@@ -12,10 +12,11 @@ function Get-CtsDepartureData {
   DepartureData objects with departure data for the specified stops
   #>
   [CmdletBinding()]
-  [OutputType([DepartureData])]
+  [OutputType([DepartureCache])]
   param (
     # IDs of the CTS stops to query
-    [Parameter(Mandatory)]
+    [Parameter()]
+    [AllowEmptyCollection()]
     [ValidatePattern('^\w{6,10}$')]
     [String[]] $StopId,
 
@@ -30,15 +31,18 @@ function Get-CtsDepartureData {
   )
   process {
     if ($null -eq $Script:DepartureCache) {
-      $Script:DepartureCache = [System.Collections.Generic.Dictionary[String, DepartureCache]]::new()
+      $Script:DepartureCache = [DepartureCache]::new()
     }
 
-    $Now = [DateTime]::Now
-    $ExpiredStopId = $StopId | Where-Object {
-      $Force -or $Script:DepartureCache.$_.ValidUntil -lt $Now
+    $ExpiredStopId = $Force ? $StopId : $StopId | Where-Object {
+      [System.Collections.Generic.List[DepartureInfo]]$Departures = $null
+      if ($Force -or -not $Script:DepartureCache.Departures.TryGetValue($_, [Ref]$Departures)) {
+        $true
+      } else {
+        $Departures.ValidUntil -lt [DateTime]::Now
+      }
     }
 
-    # Fetch expired departures
     if ($ExpiredStopId.Count -gt 0) {
       try {
         Write-Verbose -Message "CtsDeparture: Fetching departures for $($ExpiredStopId.Count) stops"
@@ -51,33 +55,27 @@ function Get-CtsDepartureData {
         $PSCmdlet.ThrowTerminatingError($_)
       }
 
-      # Follow CTS response cache guidelines
+      # Follow CTS cache guidelines
       $ShortestCycle = [System.Xml.XmlConvert]::ToTimeSpan($StopMonitoring.ShortestPossibleCycle)
       $ValidUntil = $StopMonitoring.ResponseTimestamp + $ShortestCycle
       if ($StopMonitoring.ValidUntil -gt $ValidUntil) {
         $ValidUntil = $StopMonitoring.ValidUntil
       }
 
-      # Update departure cache
-      $StopVisits = $StopMonitoring.MonitoredStopVisit
-      $ExpiredStopId | ForEach-Object {
-        $Id = $_
-        $VehicleJourneys = ($StopVisits | Where-Object { $_.MonitoringRef -eq $Id }).MonitoredVehicleJourney
-        $Script:DepartureCache.$Id = [DepartureCache]@{
-          ValidUntil = $ValidUntil
-          Departures = $VehicleJourneys | Group-Object -Property LineRef, DestinationName | ForEach-Object {
-            $Line = $_.Group[0].LineRef
-            $Destination = $_.Group[0].DestinationName
-
-            [DepartureData]@{
-              StopId      = $Id
-              LineName    = $Line
-              Destination = $Destination
-              Times       = $_.Group.MonitoredCall | ForEach-Object {
-                [DepartureTime]@{
-                  Time = $_.ExpectedDepartureTime
-                  Live = $_.Extension.IsRealTime
-                }
+      $StopMonitoring.MonitoredStopVisit | Group-Object -Property MonitoringRef | ForEach-Object {
+        $StopId = $_.Name
+        $Script:DepartureCache.Departures[$StopId] = $_.Group.MonitoredVehicleJourney | Group-Object -Property {
+          $_.LineRef + "`n" + $_.DestinationName
+        } | ForEach-Object {
+          $Line, $Destination = $_.Name -split '\n'
+          [DepartureInfo]@{
+            ValidUntil  = $ValidUntil
+            Line        = $Line
+            Destination = $Destination
+            Times       = $_.Group.MonitoredCall | ForEach-Object {
+              [DepartureTime]@{
+                Time = $_.ExpectedDepartureTime
+                Live = $_.Extension.IsRealTime
               }
             }
           }
@@ -85,7 +83,6 @@ function Get-CtsDepartureData {
       }
     }
 
-    # Return data for requested stops
-    $StopId | ForEach-Object { $Script:DepartureCache.$_.Departures }
+    $Script:DepartureCache
   }
 }

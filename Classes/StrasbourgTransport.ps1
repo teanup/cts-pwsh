@@ -1,99 +1,127 @@
 <#
 .SYNOPSIS
-Classes describing simplified CTS types for this module
+Classes for this module describing CTS stops, lines, departures and other helpers
 #>
 
 using namespace System
 using namespace System.Collections.Generic
+using namespace System.Collections.Concurrent
 using namespace System.Management.Automation
 
+# Abstract class to format strings with ANSI codes
 class Formatted {
-  [String] PadLeft([Int]$TotalWidth) {
-    return $this.Pad($TotalWidth, $true, $false, $null)
-  }
-
-  [String] PadLeft([Int]$TotalWidth, [Object]$ToStringParam) {
-    return $this.Pad($TotalWidth, $true, $true, $ToStringParam)
-  }
-
-  [String] PadRight([Int]$TotalWidth) {
-    return $this.Pad($TotalWidth, $false, $false, $null)
-  }
-
-  [String] PadRight([Int]$TotalWidth, [Object]$ToStringParam) {
-    return $this.Pad($TotalWidth, $false, $true, $ToStringParam)
-  }
-
-  hidden [String] Pad([Int]$TotalWidth, [Bool]$PadLeft, [Bool]$HasToStringParam, [Object]$ToStringParam) {
-    $Text = $this.ToString($HasToStringParam, $ToStringParam)
-    $LenDiff = $TotalWidth - $this.VisibleLength($Text)
-    if ($LenDiff -le 0) {
-      return $Text
-    } elseif ($PadLeft) {
-      return (' ' * $LenDiff + $Text)
-    } else {
-      return ($Text + ' ' * $LenDiff)
-    }
-  }
-
   [Int] VisibleLength() {
-    return $this.VisibleLength($false, $null)
+    return [Formatted]::VisibleLength($this.ToString())
   }
 
   [Int] VisibleLength([Object]$ToStringParam) {
-    return $this.VisibleLength($true, $ToStringParam)
+    return [Formatted]::VisibleLength($this.ToString($ToStringParam))
   }
 
-  hidden [Int] VisibleLength([Bool]$HasToStringParam, [Object]$ToStringParam) {
-    return $this.VisibleLength($this.ToString($HasToStringParam, $ToStringParam))
-  }
-
-  hidden [Int] VisibleLength([String]$String) {
+  hidden static [Int] VisibleLength([String]$String) {
     return ($String -replace '\e\[[\d;]+m').Length
   }
 
-  hidden [String] ToString([Bool]$HasToStringParam, [Object]$ToStringParam) {
-    if ($HasToStringParam) {
-      return $this.ToString($ToStringParam)
+  [String] PadLeft([Int]$TotalWidth) {
+    return [Formatted]::Pad($this.ToString(), $TotalWidth, $true)
+  }
+
+  [String] PadLeft([Int]$TotalWidth, [Object]$ToStringParam) {
+    return [Formatted]::Pad($this.ToString($ToStringParam), $TotalWidth, $true)
+  }
+
+  [String] PadRight([Int]$TotalWidth) {
+    return [Formatted]::Pad($this.ToString(), $TotalWidth, $false)
+  }
+
+  [String] PadRight([Int]$TotalWidth, [Object]$ToStringParam) {
+    return [Formatted]::Pad($this.ToString($ToStringParam), $TotalWidth, $false)
+  }
+
+  hidden static [String] Pad([String]$Text, [Int]$TotalWidth, [Bool]$PadLeft) {
+    $PadLength = $TotalWidth - [Formatted]::VisibleLength($Text)
+    if ($PadLength -le 0) {
+      return $Text
+    } elseif ($PadLeft) {
+      return (' ' * $PadLength + $Text)
     } else {
-      return $this.ToString()
+      return ($Text + ' ' * $PadLength)
     }
   }
 }
 
-class StopData {
+# File cache of CTS network information: stops, lines, destinations
+class StopFileCache {
+  [DateTime] $ValidUntil
+  [StopInfo[]] $Stops
+  [LineRawInfo[]] $Lines
+}
+
+# File cache of CTS line details and destinations
+class LineRawInfo {
   [String] $Id
   [String] $Name
-  [Dictionary[String, String[]]] $Lines
+  [String] $Color
+  [Bool] $Dark
+  [List[Destination]] $Destinations
+}
+
+# Cached CTS network information: stops, lines, destinations
+class StopCache {
+  [DateTime] $ValidUntil
+  [ConcurrentDictionary[String, StopInfo]] $Stops = [ConcurrentDictionary[String, StopInfo]]::new()
+  [ConcurrentDictionary[String, LineInfo]] $Lines = [ConcurrentDictionary[String, LineInfo]]::new()
+  [ConcurrentDictionary[String, List[Destination]]] $Destinations = [ConcurrentDictionary[String, List[Destination]]]::new()
+}
+
+class StopInfo {
+  [String] $Id
+  [String] $Name
+}
+
+class LineInfo {
+  [String] $Name
+  [String] $DisplayName
+  [String] $Description
+
+  LineInfo([LineRawInfo]$Line) {
+    $this.Name = $Line.Id
+    $this.Description = $Line.Name
+
+    $PSStyle = [PSStyle]::Instance
+    $Background = $PSStyle.Background.FromRgb('0x' + $Line.Color)
+    $Foreground = $Line.Dark ? $PSStyle.Foreground.White : $PSStyle.Foreground.Black
+    $this.DisplayName = $PSStyle.Bold + $Background + $Foreground + ' ' + $this.Name + ' ' + $PSStyle.Reset
+  }
+}
+
+class Destination {
+  [String] $Line
+  [Byte] $Direction
+  [String] $Name
+  [List[String]] $Stops
 }
 
 class Stop {
   [String] $Id
   [String] $Name
   [Line[]] $Lines
-
-  Stop([StopData]$StopData, [Line[]]$Lines) {
-    $this.Id = $StopData.Id
-    $this.Name = $StopData.Name
-    $this.Lines = $Lines
+  hidden [StopInfo] $StopInfo
+  hidden static [Hashtable] $DynamicProperty = @{
+    Id   = { $this.StopInfo.Id }
+    Name = { $this.StopInfo.Name }
   }
 
-  Stop([StopData]$StopData, [Dictionary[String, LineData]]$LineCache) {
-    $this.Id = $StopData.Id
-    $this.Name = $StopData.Name
-    $this.Lines = $StopData.Lines.GetEnumerator().ForEach({ [Line]::new($LineCache.($_.Key), $_.Value) })
+  hidden static Stop() {
+    $TypeName = [Stop].Name
+    foreach ($Prop in [Stop]::DynamicProperty.GetEnumerator()) {
+      Update-TypeData -TypeName $TypeName -MemberType ScriptProperty -MemberName $Prop.Key -Value $Prop.Value -Force
+    }
   }
 
   [String] ToString() {
-    return "$($this.Name) ($($this.Lines.Name -join ';'))"
+    return $this.Name + ' (' + ($this.Lines.Name -join ';') + ')'
   }
-}
-
-class LineData {
-  [String] $Name
-  [String] $Description
-  [String] $Background
-  [String] $Foreground
 }
 
 class Line : Formatted {
@@ -101,23 +129,18 @@ class Line : Formatted {
   [String] $DisplayName
   [String] $Description
   [String[]] $Destinations
-
-  Line([LineData]$LineData, [String[]]$Destinations) {
-    $this.Name = $LineData.Name
-    $this.Description = $LineData.Description
-    $this.Destinations = $Destinations
-
-    $PSStyle = [PSStyle]::Instance
-    $Background = $PSStyle.Background.FromRgb('0x' + $LineData.Background)
-    $Foreground = $PSStyle.Foreground.FromRgb('0x' + $LineData.Foreground)
-    $this.DisplayName = $PSStyle.Bold + $Background + $Foreground + ' ' + $this.Name + ' ' + $PSStyle.Reset
+  hidden [LineInfo] $LineInfo
+  hidden static [Hashtable] $DynamicProperty = @{
+    Name        = { $this.LineInfo.Name }
+    DisplayName = { $this.LineInfo.DisplayName }
+    Description = { $this.LineInfo.Description }
   }
 
-  Line([Line]$Line, [String[]]$Destinations) {
-    $this.Name = $Line.Name
-    $this.DisplayName = $Line.DisplayName
-    $this.Description = $Line.Description
-    $this.Destinations = $Destinations
+  hidden static Line() {
+    $TypeName = [Line].Name
+    foreach ($Prop in [Line]::DynamicProperty.GetEnumerator()) {
+      Update-TypeData -TypeName $TypeName -MemberType ScriptProperty -MemberName $Prop.Key -Value $Prop.Value -Force
+    }
   }
 
   [String] ToString() {
@@ -125,8 +148,21 @@ class Line : Formatted {
   }
 }
 
+# Cached departure data for a given stop
+class DepartureCache {
+  [ConcurrentDictionary[String, List[DepartureInfo]]] $Departures = [ConcurrentDictionary[String, List[DepartureInfo]]]::new()
+}
+
+# Departure times and information for a given stop, line, destination
+class DepartureInfo {
+  [DateTime] $ValidUntil
+  [String] $Line
+  [String] $Destination
+  [DepartureTime[]] $Times
+}
+
 class Departure {
-  [String] $StopName
+  [String] $Stop
   [Line] $Line
   [DepartureTime[]] $Times
 }
@@ -140,40 +176,22 @@ class DepartureTime : Formatted {
   }
 
   [String] ToString([DateTime]$ReferenceTime) {
-    $PSStyle = [PSStyle]::Instance
-
     if ($ReferenceTime -eq 0) {
       $TimeText = $this.Time.ToString('HH:mm:ss')
     } else {
-      $TimeSpan = $this.Time - $ReferenceTime
-      if ($TimeSpan -le [TimeSpan]::FromSeconds(10)) {
-        return $PSStyle.Bold + "`u{2B63}`u{2B63}" + $PSStyle.BoldOff
+      $TimeDiff = $this.Time - $ReferenceTime
+      if ($TimeDiff -le [TimeSpan]::FromSeconds(10)) {
+        $TimeText = "`u{2B63}`u{2B63}"
+      } else {
+        $TimeText = '{0}:{1:d2}' -f [Math]::Floor($TimeDiff.TotalMinutes), $TimeDiff.Seconds
       }
-      $TimeText = '{0}:{1:d2}' -f [Math]::Floor($TimeSpan.TotalMinutes), $TimeSpan.Seconds
     }
 
+    $PSStyle = [PSStyle]::Instance
     if ($this.Live) {
       return $PSStyle.Bold + $TimeText + $PSStyle.BoldOff
     } else {
       return $PSStyle.Underline + $TimeText + $PSStyle.UnderlineOff
     }
   }
-}
-
-class StopCache {
-  [DateTime] $ValidUntil
-  [Dictionary[String, StopData]] $Stops
-  [Dictionary[String, LineData]] $Lines
-}
-
-class DepartureCache {
-  [DateTime] $ValidUntil
-  [DepartureData[]] $Departures
-}
-
-class DepartureData {
-  [String] $StopId
-  [String] $LineName
-  [String] $Destination
-  [DepartureTime[]] $Times
 }

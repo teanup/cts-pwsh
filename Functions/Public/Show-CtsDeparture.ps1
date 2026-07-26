@@ -59,19 +59,18 @@ function Show-CtsDeparture {
     $Stops = [System.Collections.Generic.List[System.Object]]::new()
   }
   process {
-    switch ($PSCmdlet.ParameterSetName) {
-      'Filters' {
-        $FindParam = @{
-          Line        = $Line
-          Stop        = $Stop
-          Destination = $Destination
-          Force       = $Force
-          NoCacheFile = $NoCacheFile
-        }
-        $StopObject = Find-CtsStop @FindParam
+    if ($PSCmdlet.ParameterSetName -eq 'Filters') {
+      $FindParam = @{
+        Line        = $Line
+        Stop        = $Stop
+        Destination = $Destination
+        Force       = $Force
+        NoCacheFile = $NoCacheFile
       }
+      $StopObject = Find-CtsStop @FindParam
     }
 
+    # Gather pipeline objects
     if ($null -ne $StopObject) {
       $StopObject | ForEach-Object { $Stops.Add([Stop]$_) }
     }
@@ -91,7 +90,7 @@ function Show-CtsDeparture {
     while ($true) {
       $LastLineCount = $LineCount
       $LineCount = 0
-      $Now = [DateTime]::Now
+      $ReferenceTime = [DateTime]::Now
       $DepartureText = [System.Text.StringBuilder]::new()
 
       # Move cursor to top position
@@ -99,7 +98,7 @@ function Show-CtsDeparture {
         Write-Host -Object "`e[$($LastLineCount)F" -NoNewline
       }
 
-      Get-CtsDeparture @GetParam | Group-Object -Property StopName | ForEach-Object {
+      Get-CtsDeparture @GetParam | Group-Object -Property Stop | ForEach-Object {
         $MaxLength = $_.Group | ForEach-Object { $_.Line.VisibleLength() } | Measure-Object -Maximum
         $PadLength = $MaxLength.Maximum + 3
 
@@ -118,7 +117,7 @@ function Show-CtsDeparture {
           $null = $DepartureText.Append($Departure.Line.PadRight($PadLength))
 
           # Departures on same line
-          $DepartureTimeText = $Departure.Times | ForEach-Object { $_.PadLeft(5, $Now) }
+          $DepartureTimeText = $Departure.Times | ForEach-Object { $_.PadLeft(5, $ReferenceTime) }
           $null = $DepartureText.AppendJoin('  ', $DepartureTimeText)
           $null = $DepartureText.AppendLine()
           $LineCount++

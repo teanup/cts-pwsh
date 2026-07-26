@@ -56,19 +56,18 @@ function Get-CtsDeparture {
     $Stops = [System.Collections.Generic.List[System.Object]]::new()
   }
   process {
-    switch ($PSCmdlet.ParameterSetName) {
-      'Filters' {
-        $FindParam = @{
-          Line        = $Line
-          Stop        = $Stop
-          Destination = $Destination
-          Force       = $Force
-          NoCacheFile = $NoCacheFile
-        }
-        $StopObject = Find-CtsStop @FindParam
+    if ($PSCmdlet.ParameterSetName -eq 'Filters') {
+      $FindParam = @{
+        Line        = $Line
+        Stop        = $Stop
+        Destination = $Destination
+        Force       = $Force
+        NoCacheFile = $NoCacheFile
       }
+      $StopObject = Find-CtsStop @FindParam
     }
 
+    # Gather pipeline objects
     if ($null -ne $StopObject) {
       $StopObject | ForEach-Object { $Stops.Add([Stop]$_) }
     }
@@ -79,25 +78,32 @@ function Get-CtsDeparture {
       return
     }
 
-    # Cache 1 extra stop as backup
-    $DepartureData = Get-CtsDepartureData -StopId $Stops.Id -MinDepartures ($MaxDepartures + 1) -Force:$Force
+    try {
+      # Cache 1 extra departure as backup
+      $DepartureCache = Get-CtsDepartureData -StopId $Stops.Id -MinDepartures ($MaxDepartures + 1) -Force:$Force
+    } catch {
+      $PSCmdlet.ThrowTerminatingError($_)
+    }
 
     $NotBefore = [DateTime]::Now.AddSeconds(-10)
     $Stops | ForEach-Object {
-      $StopId = $_.Id
       $StopName = $_.Name
-      $StopDepartureData = $DepartureData | Where-Object { $_.StopId -eq $StopId }
+      $Departures = $DepartureCache.Departures[$_.Id] | Group-Object -Property Line
       $_.Lines | ForEach-Object {
         $StopLine = $_
-        # Include all destinations for given line to support CTS network changes
-        $StopDepartureData | Where-Object { $_.LineName -eq $StopLine.Name } | ForEach-Object {
+        $Departures.Where({ $_.Name -eq $StopLine.Name }).Group | Where-Object {
+          $_.Destination -in $StopLine.Destinations
+        } | ForEach-Object {
           [Departure]@{
-            StopName = $StopName
-            Line     = [Line]::new($StopLine, @($_.Destination))
-            Times    = $_.Times | Where-Object { $_.Time -ge $NotBefore } | Select-Object -First $MaxDepartures
+            Stop  = $StopName
+            Line  = [Line]@{
+              LineInfo     = $StopLine.LineInfo
+              Destinations = $_.Destination
+            }
+            Times = $_.Times | Where-Object { $_.Time -ge $NotBefore } | Select-Object -First $MaxDepartures
           }
         }
       }
-    }
+    } | Sort-Object -Property Stop, Line -Stable
   }
 }

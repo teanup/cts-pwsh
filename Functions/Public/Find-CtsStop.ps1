@@ -5,9 +5,12 @@ function Find-CtsStop {
   .DESCRIPTION
   TODO
   .EXAMPLE
-  Find-CtsStop -Line A, D -Destination Kehl, Illkirch
-  .EXAMPLE
   Find-CtsStop Gallia Gare, Neuhof, Wolfisheim
+  Returns all 'Gallia' stops with a line in direction of 'Gare...', 'Neuhof...' or 'Wolfisheim...'
+  .EXAMPLE
+  Find-CtsStop -Line A, D -Destination Kehl, Illkirch -Strict
+  Returns all stops for lines 'A' and 'D' with the only destinations 'Kehl...' and 'Illkirch...'
+  Destinations with the same direction are excluded: 'Port du Rhin', 'Les Halles'
   .OUTPUTS
   Stop objects with the relevant lines and destinations
   #>
@@ -34,9 +37,13 @@ function Find-CtsStop {
     [Alias('To')]
     [String[]] $Destination,
 
-    # Whether to look up stops with loose string matching
+    # TODO
+    [Parameter()]
+    [Switch] $Strict,
+
+    # TODO
     [Parameter(DontShow)]
-    [Switch] $LooseMatch,
+    [Switch] $Completion,
 
     # Whether to bypass the stop and departure caches
     [Parameter(DontShow)]
@@ -46,46 +53,49 @@ function Find-CtsStop {
     [Parameter(DontShow)]
     [Switch] $NoCacheFile
   )
-  begin {
-    $StringComparison = [System.StringComparison]::CurrentCultureIgnoreCase
-
-    function Test-StringArrayMatch {
-      param (
-        [String] $String,
-        [String[]] $Patterns,
-        [Switch] $Exact
-      )
-      foreach ($Pattern in $Patterns) {
-        if (($Exact -and ($String -eq $Pattern)) -or $String.StartsWith($Pattern, $StringComparison)) {
-          return $true
-        }
-      }
-      return $false
-    }
-  }
   process {
-    $StopCache = Get-CtsStopData -Force:$Force -NoCacheFile:$NoCacheFile
+    try {
+      $StopCache = Get-CtsStopData -Force:$Force -NoCacheFile:$NoCacheFile
+    } catch {
+      $PSCmdlet.ThrowTerminatingError($_)
+    }
 
-    $StopCache.Stops.GetEnumerator() | Where-Object {
-      # Filter stops
-      $Stop.Count -eq 0 -or (Test-StringArrayMatch -String $_.Value.Name -Patterns $Stop)
+    $StringComparison = [System.StringComparison]::CurrentCultureIgnoreCase
+    $Destinations = $StopCache.Destinations.GetEnumerator() | Where-Object {
+      $LineName = $_.Key
+      # Loose match only for argument completions
+      $Line.Count -eq 0 -or $Line.Where({
+          $Completion ? $LineName.StartsWith($_, $StringComparison) : $LineName -eq $_
+        }).Count -gt 0
     } | ForEach-Object {
-      $Lines = $_.Value.Lines.GetEnumerator() | Where-Object {
-        # Filter lines
-        $Line.Count -eq 0 -or (Test-StringArrayMatch -String $_.Key -Patterns $Line -Exact:(-not $LooseMatch))
-      } | ForEach-Object {
-        $Destinations = $_.Value | Where-Object {
-          # Filter destinations
-          $Destination.Count -eq 0 -or (Test-StringArrayMatch -String $_ -Patterns $Destination)
-        }
+      $Dest = $_.Value.GetEnumerator() | Where-Object {
+        $DestName = $_.Name
+        $Destination.Count -eq 0 -or $Destination.Where({ $DestName.StartsWith($_, $StringComparison) }).Count -gt 0
+      }
+      if ($Strict) {
+        $Dest
+      } else {
+        # Include same-direction destinations to support CTS network changes
+        $Directions = $Dest.Direction | Select-Object -Unique
+        $_.Value.GetEnumerator() | Where-Object { $_.Direction -in $Directions }
+      }
+    }
+    $Stops = $Destinations.Stops | Select-Object -Unique | ForEach-Object { $StopCache.Stops[$_] } | Where-Object {
+      $StopName = $_.Name
+      $Stop.Count -eq 0 -or $Stop.Where({ $StopName.StartsWith($_, $StringComparison) }).Count -gt 0
+    }
 
-        if ($Destinations.Count -gt 0) {
-          [Line]::new($StopCache.Lines.($_.Key), $Destinations)
+    $Stops | ForEach-Object {
+      $StopId = $_.Id
+      $Lines = $Destinations | Where-Object { $_.Stops.Contains($StopId) } | Group-Object -Property Line | ForEach-Object {
+        [Line]@{
+          LineInfo     = $StopCache.Lines[$_.Name]
+          Destinations = $_.Group.Name
         }
       }
-
-      if ($Lines.Count -gt 0) {
-        [Stop]::new($_.Value, $Lines)
+      [Stop]@{
+        StopInfo = $_
+        Lines    = $Lines
       }
     }
   }

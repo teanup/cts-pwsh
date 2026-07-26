@@ -13,24 +13,21 @@ $Functions = Get-ChildItem -Path ($PSScriptRoot | Join-Path -ChildPath 'Function
 @($Classes) + @($Functions) | ForEach-Object { . $_.FullName }
 
 # Export custom types
-$ExportableTypes = [System.Collections.Generic.List[Type]]@(
+$ExportableTypes = @(
   [Stop],
   [Departure]
 )
 $TypeAcceleratorsClass = [PSCustomObject].Assembly.GetType('System.Management.Automation.TypeAccelerators')
-$ExistingTypeAccelerators = $TypeAcceleratorsClass::Get
-foreach ($Type in $ExportableTypes) {
-  if ($Type.FullName -in $ExistingTypeAccelerators.Keys) {
-    Write-Warning -Message "Type accelerator already exists for type '$($Type.FullName)'"
-    $null = $ExportableTypes.Remove($Type.FullName)
+$ExportableTypes = $ExportableTypes | ForEach-Object {
+  if ($_.FullName -notin $TypeAcceleratorsClass::Get.Keys) {
+    $TypeAcceleratorsClass::Add($_.FullName, $_)
+    $_
   } else {
-    $null = $TypeAcceleratorsClass::Add($Type.FullName, $Type)
+    Write-Warning -Message "StrasbourgTransport: Type accelerator already exists for type '$($_.FullName)'"
   }
 }
 $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
-  foreach ($Type in $ExportableTypes) {
-    $null = $TypeAcceleratorsClass::Remove($Type.FullName)
-  }
+  $null = $ExportableTypes | ForEach-Object { $TypeAcceleratorsClass::Remove($_.FullName) }
 }.GetNewClosure()
 
 # CTS API token
