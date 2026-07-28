@@ -12,7 +12,8 @@ function Get-CtsDeparture {
   .OUTPUTS
   [Departure] objects for the relevant stops, lines and destinations
   #>
-  [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Filters')]
+  [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Filters',
+    HelpUri = 'https://github.com/teanup/cts-pwsh/blob/main/.docs/StrasbourgTransport/Get-CtsDeparture.md#Get-CtsDeparture')]
   [OutputType([Departure])]
   param (
     # Line names to filter by

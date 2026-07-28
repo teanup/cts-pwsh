@@ -10,7 +10,8 @@ function Show-CtsDeparture {
   .EXAMPLE
   Show-CtsDeparture -Stop 'Homme de Fer' -RefreshRate 10
   #>
-  [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Filters')]
+  [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Filters',
+    HelpUri = 'https://github.com/teanup/cts-pwsh/blob/main/.docs/StrasbourgTransport/Show-CtsDeparture.md#Show-CtsDeparture')]
   [OutputType([Void])]
   param (
     # Line names to filter by

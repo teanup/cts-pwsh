@@ -8,7 +8,7 @@
   RootModule        = 'StrasbourgTransport.psm1'
 
   # Version number of this module.
-  ModuleVersion     = '1.0.0'
+  ModuleVersion     = '1.0.1'
 
   # Supported PSEditions
   # CompatiblePSEditions = @()
@@ -116,6 +116,8 @@
       ReleaseNotes = @'
         1.0.0
         - Initial release: CTS stop lookup, dynamic departure display
+        1.0.1
+        - Fix: add missing online help, fix minor issues
 '@
 
       # Prerelease string of this module
@@ -132,7 +134,7 @@
   } # End of PrivateData hashtable
 
   # HelpInfo URI of this module
-  HelpInfoURI       = 'https://github.com/teanup/cts-pwsh?tab=readme-ov-file'
+  # HelpInfoURI = ''
 
   # Default prefix for commands exported from this module. Override the default prefix using Import-Module -Prefix.
   # DefaultCommandPrefix = ''

@@ -1,8 +1,6 @@
 <#
 .SYNOPSIS
 Argument completers for CTS stops, lines and destinations
-.LINK
-https://gist.github.com/santisq/ad07e2e3913de981c4d2e06f41e6ddb4#file-thing-doesnt-work-with-scriptblock-ps1
 #>
 
 using namespace System.Management.Automation
@@ -12,6 +10,7 @@ using namespace System.Collections.Generic
 
 # Base argument completer that delegates item lookup to a CtsItems method
 class CtsCompleter : IArgumentCompleter {
+  # Based on: https://gist.github.com/santisq/ad07e2e3913de981c4d2e06f41e6ddb4
   hidden [List[CompletionResult]] $Results = [List[CompletionResult]]::new()
 
   [IEnumerable[CompletionResult]] CompleteArgument(
@@ -30,13 +29,13 @@ class CtsCompleter : IArgumentCompleter {
       Completion  = $true
     }
     # Unescape quotes for CTS item lookup
-    $FindParam.$ParameterName = [Regex]::Unescape($WordToComplete -replace '(^"|"$)|(^''|''$)')
+    $FindParam.$ParameterName = [Regex]::Unescape($WordToComplete -replace '^"|"$|^''|''$')
     $CompletionItems = $this.CtsItems($FindParam)
 
     foreach ($Item in $CompletionItems) {
       # Escape quotes for command line parameter text
       $Completion = [CodeGeneration]::EscapeSingleQuotedStringContent($Item)
-      if ($Item -match '\s') {
+      if ($Item -match '\s|''|"') {
         $Completion = "'$Completion'"
       }
 

@@ -1,8 +1,21 @@
 # StrasbourgTransport (PowerShell module)
 
+[![PowerShell Gallery Version](https://img.shields.io/powershellgallery/v/StrasbourgTransport.svg?label=PowerShell%20Gallery&style=flat-square)](https://www.powershellgallery.com/packages/StrasbourgTransport)
+[![PowerShell Gallery Downloads](https://img.shields.io/powershellgallery/dt/StrasbourgTransport.svg?label=Downloads&style=flat-square)](https://www.powershellgallery.com/stats/packages/StrasbourgTransport?groupby=Version)
+[![Code Quality Workflow Status](https://img.shields.io/github/actions/workflow/status/teanup/cts-pwsh/powershell-quality.yml?label=Code%20Quality&style=flat-square)](https://github.com/teanup/cts-pwsh/actions/workflows/powershell-quality.yml)
+[![Publish Module Workflow Status](https://img.shields.io/github/actions/workflow/status/teanup/cts-pwsh/powershell-publish.yml?label=Publish%20Module&style=flat-square)](https://github.com/teanup/cts-pwsh/actions/workflows/powershell-publish.yml)
+
 Display Strasbourg public transport departures in PowerShell.
 
 ## Prerequisites
+
+### Install module
+
+```pwsh
+Install-PSResource -Name StrasbourgTransport
+```
+
+### CTS API token
 
 You need a **CTS API token** to use this module.
 
@@ -33,7 +46,7 @@ Find-CtsStop -Line A, D -Destination Kehl, Illkirch
 Find-CtsStop -Line A, D -Destination Kehl, Illkirch -Strict
 ```
 
-Returns `[Stop]` objects that can be piped into `Get-CtsDeparture` or `Show-CtsDeparture`.
+Returns `Stop` objects that can be piped into `Get-CtsDeparture` or `Show-CtsDeparture`.
 
 ### Get-CtsDeparture
 
@@ -47,7 +60,7 @@ Get-CtsDeparture Gare Rotterdam
 Find-CtsStop Esplanade | Get-CtsDeparture -MaxDepartures 5
 ```
 
-Returns `[Departure]` objects with the stop name, line info and departure times.
+Returns `Departure` objects with the stop name, line info and departure times.
 
 ### Show-CtsDeparture
 
@@ -61,4 +74,4 @@ Show-CtsDeparture -Stop 'Homme de Fer' -RefreshRate 10
 Find-CtsStop -Line H -Destination Parlement | Show-CtsDeparture
 ```
 
-The display refreshes automatically at the given interval and redraws in place using ANSI escape codes. Live (real-time) departure times are shown in **bold**; scheduled times are shown with an <u>underline</u>.
+The display refreshes automatically at the given interval and redraws in place using ANSI escape codes. Live (real-time) departure times are shown in **bold**, scheduled times are shown with an <ins>underline</ins>.
