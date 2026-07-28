@@ -15,7 +15,8 @@ function Find-CtsStop {
   .OUTPUTS
   [Stop] objects with the relevant lines and destinations
   #>
-  [CmdletBinding(SupportsShouldProcess)]
+  [CmdletBinding(SupportsShouldProcess,
+    HelpUri = 'https://github.com/teanup/cts-pwsh/blob/main/.docs/StrasbourgTransport/Find-CtsStop.md#Find-CtsStop')]
   [OutputType([Stop])]
   param (
     # Line names to filter by
