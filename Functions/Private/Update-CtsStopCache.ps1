@@ -138,7 +138,7 @@ function Update-CtsStopCache {
           $FileCache.Lines | ForEach-Object { $_.Destinations = [StopCache]::Instance.Destinations[$_.Id] }
           $SetParam = @{
             Path    = $FileCachePath
-            Force   = true
+            Force   = $true
             WhatIf  = $false
             Confirm = $false
           }
