@@ -64,7 +64,8 @@ class LineCompleter : CtsCompleter {
 # Tab completer for the -Destination parameter: returns destination names matching the current context (stop, line)
 class DestinationCompleter : CtsCompleter {
   hidden [String[]] CtsItems([IDictionary]$FindParam) {
-    $Destinations = (Find-CtsStop @FindParam).Lines.Destinations
+    # Destinations must match the word to complete
+    $Destinations = (Find-CtsStop @FindParam -Strict).Lines.Destinations
     return $Destinations | Sort-Object -Unique
   }
 }

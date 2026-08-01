@@ -3,7 +3,7 @@ name: Publish Module
 on:
   push:
     tags:
-      - "v*.*.*"
+      - v*.*.*
 
 permissions:
   contents: read
@@ -17,7 +17,9 @@ jobs:
 
       - name: Publish PowerShell module
         shell: pwsh
+        env:
+          PSGalleryApiKey: ${{ secrets.PSGALLERY_API_KEY }}
         run: |
           $PublishPath = New-Item -Path ([System.IO.Path]::GetTempPath()) -Name Publish -ItemType Directory
-          Get-ChildItem -Exclude .* | Copy-Item -Destination $PublishPath -Recurse
-          Publish-PSResource -Path $PublishPath -ApiKey ${{ secrets.PSGALLERY_API_KEY }} -Repository PSGallery
+          Get-ChildItem -Exclude .* | Copy-Item -Destination $PublishPath -Recurse -Verbose
+          Publish-PSResource -Path $PublishPath -ApiKey $env:PSGalleryApiKey -Repository PSGallery -Verbose
