@@ -10,7 +10,7 @@ function Invoke-CtsApi {
   .EXAMPLE
   Invoke-CtsApi -Path 'siri/2.0/stop-monitoring' -Query @{ MonitoringRef = 'PARLE_05'; MinimumStopVisitsPerLine = 3 }
   .OUTPUTS
-  Response parsed as a custom object
+  [PSCustomObject] with the response parsed from JSON
   #>
   [CmdletBinding()]
   [OutputType([PSCustomObject])]
@@ -28,7 +28,7 @@ function Invoke-CtsApi {
     # CTS API token, usually set at module import
     [Parameter()]
     [ValidateNotNull()]
-    [String] $Token = $Script:CtsApiToken,
+    [SecureString] $Token = (Get-CtsApiToken),
 
     # Base URL of the CTS API
     [Parameter()]
@@ -36,6 +36,10 @@ function Invoke-CtsApi {
     [String] $BaseUrl = 'https://api.cts-strasbourg.eu/v1/'
   )
   process {
+    if ($null -eq $Token) {
+      Write-Error -Message 'Missing CTS API token! Usage: Set-CtsApiToken -Token <your-token>' -ErrorAction Stop
+    }
+
     $UriBuilder = [System.UriBuilder]::new($BaseUrl + $Path)
     $QueryString = [System.Web.HttpUtility]::ParseQueryString('')
 
@@ -56,7 +60,9 @@ function Invoke-CtsApi {
       Method         = 'Get'
       Uri            = $UriBuilder.ToString()
       Authentication = 'Basic'
-      Credential     = [PSCredential]::new($Token, [SecureString]::new())
+      Credential     = [PSCredential]::new(
+        [System.Net.NetworkCredential]::new('', $Token).Password, [SecureString]::new()
+      )
     }
 
     try {
@@ -65,7 +71,7 @@ function Invoke-CtsApi {
       if ($null -eq $CtsError) {
         $Response
       } else {
-        Write-Error -Message "API Error: $CtsError"
+        Write-Error -Message "API Error: $CtsError" -ErrorAction Stop
       }
     } catch {
       $PSCmdlet.ThrowTerminatingError($_)
