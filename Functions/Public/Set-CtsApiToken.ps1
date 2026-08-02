@@ -12,6 +12,7 @@ function Set-CtsApiToken {
     HelpUri = 'https://github.com/teanup/cts-pwsh/blob/main/.docs/StrasbourgTransport/Set-CtsApiToken.md#Set-CtsApiToken')]
   [OutputType([Void])]
   param (
+    # Token to use for authenticating with the CTS API
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
     [String] $Token

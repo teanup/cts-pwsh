@@ -3,8 +3,8 @@ function Invoke-CtsApi {
   .SYNOPSIS
   Performs a request to the CTS API
   .DESCRIPTION
-  Sends a GET request to the CTS API at the given endpoint path, builds the query string from the provided hashtable
-  (array values become duplicate parameters), and authenticates with the module's API token.
+  Sends a GET request to the CTS API at the specified endpoint path with a token for authentication.
+  The query string is built from the provided hashtable, array values become duplicate parameters.
   .EXAMPLE
   Invoke-CtsApi -Path 'siri/2.0/stoppoints-discovery' -Query @{ IncludeLinesDestinations = $true }
   .EXAMPLE
@@ -25,7 +25,7 @@ function Invoke-CtsApi {
     [AllowNull()]
     [Hashtable] $Query,
 
-    # CTS API token, usually set at module import
+    # CTS API token for authentication
     [Parameter()]
     [ValidateNotNull()]
     [SecureString] $Token = (Get-CtsApiToken),
