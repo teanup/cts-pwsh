@@ -10,7 +10,7 @@
 
 A PowerShell module to query and display real-time departures for the **CTS (Compagnie des Transports Strasbourgeois)** network directly in your terminal.
 
-![Show-CtsDeparture demo](https://raw.githubusercontent.com/teanup/cts-pwsh/main/.docs/preview.gif)
+<img alt="Show-CtsDeparture demo" src="https://raw.githubusercontent.com/teanup/cts-pwsh/main/.docs/preview-crop.gif" width="640px" />
 
 ### Features
 
