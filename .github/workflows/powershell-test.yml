@@ -1,0 +1,30 @@
+name: Unit Tests
+
+on: [push]
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  #   branches:
+  #     - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Pester
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run Pester tests
+        shell: pwsh
+        run: Invoke-Pester -Path .tests/ -CI
+
+      - name: Upload test results
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          path: testResults.xml

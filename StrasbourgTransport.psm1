@@ -37,4 +37,4 @@ if ($null -eq (Get-CtsApiToken)) {
 }
 
 # Pre-load stop cache
-Update-CtsStopCache -ErrorAction SilentlyContinue
+try { Update-CtsStopCache } catch {}
