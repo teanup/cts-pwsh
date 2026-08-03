@@ -5,31 +5,31 @@
 @{
 
   # Script module or binary module file associated with this manifest.
-  RootModule        = 'StrasbourgTransport.psm1'
+  RootModule           = 'StrasbourgTransport.psm1'
 
   # Version number of this module.
-  ModuleVersion     = '1.0.1'
+  ModuleVersion        = '1.1.0'
 
   # Supported PSEditions
-  # CompatiblePSEditions = @()
+  CompatiblePSEditions = @('Core')
 
   # ID used to uniquely identify this module
-  GUID              = 'a3884d25-030d-49e5-957c-139aacb7d2e3'
+  GUID                 = 'a3884d25-030d-49e5-957c-139aacb7d2e3'
 
   # Author of this module
-  Author            = 'peanut'
+  Author               = 'peanut'
 
   # Company or vendor of this module
   # CompanyName       = 'Unknown'
 
   # Copyright statement for this module
-  Copyright         = '(c) peanut. All rights reserved.'
+  Copyright            = '(c) peanut. All rights reserved.'
 
   # Description of the functionality provided by this module
-  Description       = 'Display Strasbourg public transport departures in PowerShell'
+  Description          = 'Display Strasbourg public transport departures in PowerShell'
 
   # Minimum version of the PowerShell engine required by this module
-  PowerShellVersion = '7.4'
+  PowerShellVersion    = '7.4'
 
   # Name of the PowerShell host required by this module
   # PowerShellHostName = ''
@@ -68,22 +68,23 @@
 
   # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry,
   # use an empty array if there are no functions to export.
-  FunctionsToExport = @(
+  FunctionsToExport    = @(
     'Find-CtsStop',
     'Get-CtsDeparture',
-    'Show-CtsDeparture'
+    'Show-CtsDeparture',
+    'Set-CtsApiToken'
   )
 
   # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry,
   # use an empty array if there are no cmdlets to export.
-  CmdletsToExport   = @()
+  CmdletsToExport      = @()
 
   # Variables to export from this module
-  VariablesToExport = '*'
+  VariablesToExport    = '*'
 
   # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry,
   # use an empty array if there are no aliases to export.
-  AliasesToExport   = @()
+  AliasesToExport      = @()
 
   # DSC resources to export from this module
   # DscResourcesToExport = @()
@@ -96,7 +97,7 @@
 
   # Private data to pass to the module specified in RootModule/ModuleToProcess.
   # This may also contain a PSData hashtable with additional module metadata used by PowerShell.
-  PrivateData       = @{
+  PrivateData          = @{
 
     PSData = @{
 
@@ -113,12 +114,7 @@
       # IconUri = ''
 
       # ReleaseNotes of this module
-      ReleaseNotes = @'
-        1.0.0
-        - Initial release: CTS stop lookup, dynamic departure display
-        1.0.1
-        - Fix: add missing online help, fix minor issues
-'@
+      ReleaseNotes = 'https://github.com/teanup/cts-pwsh/releases/tag/v1.1.0'
 
       # Prerelease string of this module
       # Prerelease = ''

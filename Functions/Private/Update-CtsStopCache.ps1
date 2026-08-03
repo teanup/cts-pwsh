@@ -54,7 +54,7 @@ function Update-CtsStopCache {
             [StopCache]::Instance.Ready = $true
           }
         } catch {
-          Write-Warning -Message "CtsStop: Error loading cache: $($_.Exception.Message)"
+          Write-Warning -Message "CtsStop: Error loading cache: $_"
           $Refresh = $true
         }
       } else {

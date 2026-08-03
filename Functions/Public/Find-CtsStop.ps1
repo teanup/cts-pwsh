@@ -62,19 +62,25 @@ function Find-CtsStop {
       $PSCmdlet.ThrowTerminatingError($_)
     }
 
-    $StringComparison = [System.StringComparison]::CurrentCultureIgnoreCase
+    # Ignore diacritics and case
+    $Compare = [CultureInfo]::InvariantCulture.CompareInfo
+    $Options = @(
+      [System.Globalization.CompareOptions]::IgnoreNonSpace,
+      [System.Globalization.CompareOptions]::IgnoreCase
+    )
+
     $Destinations = [StopCache]::Instance.Destinations.GetEnumerator() | Where-Object {
       $LineName = $_.Key
       # Loose match only for argument completion
       if ($Completion) {
-        $Line.Count -eq 0 -or $Line.Where({ $LineName.StartsWith($_, $StringComparison) }).Count -gt 0
+        $Line.Count -eq 0 -or $Line.Where({ $Compare.IsPrefix($LineName, $_, $Options) }).Count -gt 0
       } else {
         $Line.Count -eq 0 -or $Line -contains $LineName
       }
     } | ForEach-Object {
       $Dest = $_.Value.GetEnumerator() | Where-Object {
         $DestName = $_.Name
-        $Destination.Count -eq 0 -or $Destination.Where({ $DestName.StartsWith($_, $StringComparison) }).Count -gt 0
+        $Destination.Count -eq 0 -or $Destination.Where({ $Compare.IsPrefix($DestName, $_, $Options) }).Count -gt 0
       }
       if ($Strict) {
         $Dest
@@ -88,7 +94,7 @@ function Find-CtsStop {
       [StopCache]::Instance.Stops[$_]
     } | Where-Object {
       $StopName = $_.Name
-      $Stop.Count -eq 0 -or $Stop.Where({ $StopName.StartsWith($_, $StringComparison) }).Count -gt 0
+      $Stop.Count -eq 0 -or $Stop.Where({ $Compare.IsPrefix($StopName, $_, $Options) }).Count -gt 0
     }
 
     $Stops | ForEach-Object {

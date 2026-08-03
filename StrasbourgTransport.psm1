@@ -1,11 +1,9 @@
 <#
 .SYNOPSIS
-Imports classes and functions, defines module-scope variables
+Imports classes and functions, exports types and pre-loads cache
 #>
 
-param (
-  [String] $CtsApiKey
-)
+Set-Variable -Name ModulePath -Value $PSScriptRoot -Option Constant -Visibility Private -Scope Local
 
 # Dot-source PowerShell scripts
 $Classes = Get-ChildItem -Path ($PSScriptRoot | Join-Path -ChildPath 'Classes') -Include '*.ps1' -Recurse
@@ -30,18 +28,13 @@ $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
   $null = $ExportableTypes | ForEach-Object { $TypeAcceleratorsClass::Remove($_.FullName) }
 }.GetNewClosure()
 
-# CTS API token
-$CtsApiKeyPath = $PSScriptRoot | Join-Path -ChildPath '.cts-api.key'
-if ($CtsApiKey) {
-  Set-Content -Path $CtsApiKeyPath -Value $CtsApiKey -Force
-} else {
-  $CtsApiKey = Get-Content -Path $CtsApiKeyPath -ErrorAction SilentlyContinue | Select-Object -First 1
+# Check CTS API token
+Set-Variable -Name CtsApiToken -Value $CtsApiKey -Visibility Private -Scope Local
+if ($null -eq (Get-CtsApiToken)) {
+  Write-Warning -Message 'CTS API token not found. Set your token with: Set-CtsApiToken -Token <your-token>'
+  Write-Information -MessageData ('Using StrasbourgTransport for the first time? ' +
+    'Check the guide: https://github.com/teanup/cts-pwsh#getting-started') -InformationAction Continue
 }
-if (-not $CtsApiKey) {
-  Write-Warning -Message 'Missing CTS API token!'
-  Write-Warning -Message "Set your token in '$CtsApiKeyPath' or import the module with: -ArgumentList <your-token>"
-}
-Set-Variable -Name CtsApiToken -Value $CtsApiKey -Option Constant -Visibility Private -Scope Local
 
 # Pre-load stop cache
 Update-CtsStopCache -ErrorAction SilentlyContinue

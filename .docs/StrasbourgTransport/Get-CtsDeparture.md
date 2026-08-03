@@ -4,7 +4,7 @@ external help file: StrasbourgTransport-Help.xml
 HelpUri: https://github.com/teanup/cts-pwsh/blob/main/.docs/StrasbourgTransport/Get-CtsDeparture.md#Get-CtsDeparture
 Locale: en-US
 Module Name: StrasbourgTransport
-ms.date: 07/28/2026
+ms.date: 08/01/2026
 PlatyPS schema version: 2024-05-01
 title: Get-CtsDeparture
 ---
@@ -35,19 +35,23 @@ Get-CtsDeparture -StopObject <Stop[]> [-MaxDepartures <int>] [-WhatIf] [-Confirm
 
 ## DESCRIPTION
 
-Returns [Departure] objects with the upcoming departure times for the stops, lines and destinations matching
-the given filters.
-Accepts filter parameters or piped [Stop] objects from Find-CtsStop.
+Returns `Departure` objects with the upcoming departure times for the stops, lines and destinations matching the given filters.
+
+Accepts filter parameters or piped `Stop` objects from `Find-CtsStop`.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 
+```pwsh
 Get-CtsDeparture -Stop Gare -Destination Rotterdam
+```
 
 ### EXAMPLE 2
 
+```pwsh
 Find-CtsStop Gare | Get-CtsDeparture -MaxDepartures 5
+```
 
 ## PARAMETERS
 
@@ -203,7 +207,7 @@ HelpMessage: ''
 
 ### -StopObject
 
-Stop objects from Find-CtsStop to retrieve departures for
+`Stop` objects from `Find-CtsStop` to retrieve departures for
 
 ```yaml
 Type: Stop[]
@@ -276,13 +280,13 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### Stop[]
 
-Stop objects from Find-CtsStop to retrieve departures for
+`Stop` objects from `Find-CtsStop` to retrieve departures for
 
 ## OUTPUTS
 
 ### Departure
 
-Departure objects for the relevant stops
+`Departure` objects for the relevant stops
 
 ## NOTES
 

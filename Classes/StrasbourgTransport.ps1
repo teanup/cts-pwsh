@@ -145,7 +145,7 @@ class Line : Formatted {
   }
 
   [String] ToString() {
-    return $this.DisplayName + " `u{279C} " + ($this.Destinations -join ';')
+    return $this.DisplayName + " `u{279C} " + [String]::Join(';', $this.Destinations)
   }
 }
 
@@ -180,7 +180,7 @@ class Stop {
   }
 
   [String] ToString() {
-    return $this.Name + ' (' + ($this.Lines.Name -join ';') + ')'
+    return $this.Name + ' (' + [String]::Join(';', $this.Lines.Name) + ')'
   }
 }
 

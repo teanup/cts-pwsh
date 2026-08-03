@@ -4,7 +4,7 @@ external help file: StrasbourgTransport-Help.xml
 HelpUri: https://github.com/teanup/cts-pwsh/blob/main/.docs/StrasbourgTransport/Show-CtsDeparture.md#Show-CtsDeparture
 Locale: en-US
 Module Name: StrasbourgTransport
-ms.date: 07/28/2026
+ms.date: 08/01/2026
 PlatyPS schema version: 2024-05-01
 title: Show-CtsDeparture
 ---
@@ -35,18 +35,23 @@ Show-CtsDeparture -StopObject <Stop[]> [-MaxDepartures <int>] [-RefreshRate <int
 
 ## DESCRIPTION
 
-Shows a live-updating table of departures in the terminal (press Ctrl+C to exit).
+Shows a live-updating table of departures in the terminal (press <kbd>Ctrl</kbd>+<kbd>C</kbd> to exit).
+
 Refreshes automatically at the given interval and redraws in place using ANSI escape codes.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 
+```pwsh
 Show-CtsDeparture -Stop Esplanade -Destination Lingolsheim, Robertsau
+```
 
 ### EXAMPLE 2
 
+```pwsh
 Show-CtsDeparture -Stop 'Homme de Fer' -RefreshRate 10
+```
 
 ## PARAMETERS
 
@@ -223,7 +228,7 @@ HelpMessage: ''
 
 ### -StopObject
 
-Stop objects from Find-CtsStop to display departures for
+`Stop` objects from `Find-CtsStop` to display departures for
 
 ```yaml
 Type: Stop[]
@@ -296,7 +301,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### Stop[]
 
-Stop objects from Find-CtsStop to retrieve departures for
+`Stop` objects from `Find-CtsStop` to retrieve departures for
 
 ## OUTPUTS
 

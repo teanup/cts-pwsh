@@ -102,42 +102,46 @@ function Show-CtsDeparture {
 
       # Move cursor to top position
       if ($LastLineCount -gt 0) {
-        Write-Host -Object "`e[$($LastLineCount)F" -NoNewline
+        Write-Host -Object "`e[$LastLineCount`F" -NoNewline
       }
 
-      Get-CtsDeparture @GetParam | Group-Object -Property Stop | ForEach-Object {
-        $MaxLength = $_.Group | ForEach-Object { $_.Line.VisibleLength() } | Measure-Object -Maximum
-        $PadLength = $MaxLength.Maximum + 3
+      try {
+        Get-CtsDeparture @GetParam | Group-Object -Property Stop | ForEach-Object {
+          $MaxLength = $_.Group | ForEach-Object { $_.Line.VisibleLength() } | Measure-Object -Maximum
+          $PadLength = $MaxLength.Maximum + 3
 
-        # Stop name as title
-        $null = $DepartureText.AppendLine($_.Name)
-        $LineCount++
-
-        # Lines as sub-elements
-        for ($DepId = 0; $DepId -lt $_.Count; $DepId++) {
-          $Departure = $_.Group[$DepId]
-          if ($DepId -lt ($_.Count - 1)) {
-            $null = $DepartureText.Append(" `u{251C}`u{2500} ")
-          } else {
-            $null = $DepartureText.Append(" `u{2514}`u{2500} ")
-          }
-          $null = $DepartureText.Append($Departure.Line.PadRight($PadLength))
-
-          # Departures on same line
-          $DepartureTimeText = $Departure.Times | ForEach-Object { $_.PadLeft(5, $ReferenceTime) }
-          $null = $DepartureText.AppendJoin('  ', $DepartureTimeText)
-          $null = $DepartureText.AppendLine()
+          # Stop name as title
+          $null = $DepartureText.AppendLine($_.Name)
           $LineCount++
+
+          # Lines as sub-elements
+          for ($DepId = 0; $DepId -lt $_.Count; $DepId++) {
+            $Departure = $_.Group[$DepId]
+            if ($DepId -lt ($_.Count - 1)) {
+              $null = $DepartureText.Append(" `u{251C}`u{2500} ")
+            } else {
+              $null = $DepartureText.Append(" `u{2514}`u{2500} ")
+            }
+            $null = $DepartureText.Append($Departure.Line.PadRight($PadLength))
+
+            # Departures on same line
+            $DepartureTimeText = $Departure.Times | ForEach-Object { $_.PadLeft(5, $ReferenceTime) }
+            $null = $DepartureText.AppendJoin('  ', $DepartureTimeText)
+            $null = $DepartureText.AppendLine()
+            $LineCount++
+          }
         }
+      } catch {
+        Write-Error -Message $_
       }
 
       # Erase previous departures
       if ($LastLineCount -gt 0) {
-        Write-Host -Object "`e[$($LastLineCount)M" -NoNewline
+        Write-Host -Object "`e[$LastLineCount`M" -NoNewline
       }
 
       # Print departures
-      Write-Host -Object $DepartureText.ToString() -NoNewline
+      Write-Host -Object $DepartureText -NoNewline
       Start-Sleep -Seconds $RefreshRate
     }
   }

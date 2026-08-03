@@ -4,7 +4,7 @@ external help file: StrasbourgTransport-Help.xml
 HelpUri: https://github.com/teanup/cts-pwsh/blob/main/.docs/StrasbourgTransport/Find-CtsStop.md#Find-CtsStop
 Locale: en-US
 Module Name: StrasbourgTransport
-ms.date: 07/28/2026
+ms.date: 08/01/2026
 PlatyPS schema version: 2024-05-01
 title: Find-CtsStop
 ---
@@ -28,21 +28,28 @@ Find-CtsStop [[-Stop] <string[]>] [[-Destination] <string[]>] [-Line <string[]>]
 
 ## DESCRIPTION
 
-Queries the cached CTS network data and returns [Stop] objects whose name, line and destination match the given
-filters.
+Queries the cached CTS network data and returns `Stop` objects whose name, line and destination match the given filters.
+
 Stop, line and destination names are matched by prefix (case-insensitive), so partial names work.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 
+```pwsh
 Find-CtsStop Gallia Gare, Neuhof, Wolfisheim
+```
+
 Returns all stops named 'Gallia...' with a line heading towards 'Gare...', 'Neuhof...' or 'Wolfisheim...'
 
 ### EXAMPLE 2
 
+```pwsh
 Find-CtsStop -Line A, D -Destination Kehl, Illkirch -Strict
+```
+
 Returns all stops for lines 'A' and 'D' with the only destinations 'Kehl...' and 'Illkirch...'
+
 Destinations with the same direction are excluded: 'Port du Rhin', 'Les Halles'
 
 ## PARAMETERS
@@ -253,7 +260,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ### Stop
 
-Stop objects with the relevant lines and destinations
+`Stop` objects with the relevant lines and destinations
 
 ## NOTES
 

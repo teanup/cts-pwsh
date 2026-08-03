@@ -87,13 +87,13 @@ if ([String]::IsNullOrEmpty($Path)) {
 }
 
 if (-not (Test-Path -Path $Path -PathType Leaf -IsValid)) {
-  throw "Invalid path for CTS API types: $Path"
+  Write-Error -Message "Invalid path for CTS API types: $Path" -ErrorAction Stop
 }
 
 $OpenApi = Invoke-RestMethod -Uri $OpenApiUrl
 $CtsTypes = $OpenApi.components.schemas
 if ($null -eq $CtsTypes) {
-  throw "Invalid OpenAPI format from: $OpenApiUrl"
+  Write-Error -Message "Invalid OpenAPI format from: $OpenApiUrl" -ErrorAction Stop
 }
 
 $null = New-Item -Path $Path -ItemType File -Force -Value @"
