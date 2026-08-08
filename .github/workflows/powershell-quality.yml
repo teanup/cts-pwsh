@@ -1,12 +1,13 @@
 name: Code Quality
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+  [push]
+  # push:
+  #   branches:
+  #     - main
+  # pull_request:
+  #   branches:
+  #     - main
 
 permissions:
   contents: read
@@ -22,12 +23,21 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Run PSScriptAnalyzer
-        uses: microsoft/psscriptanalyzer-action@v1.1
-        with:
-          recurse: true
-          output: results.sarif
+        shell: pwsh
+        run: |
+          . .tests/ConvertTo-Sarif.ps1
+          $Sarif = Invoke-ScriptAnalyzer -Path . -Recurse -Settings .tests/CodeFormatting.psd1 | ConvertTo-Sarif
+          $Sarif | ConvertTo-Json -Depth 100 -Compress | Set-Content results.sarif
+          $Levels = $Sarif.runs.results | Group-Object -Property level -NoElement
+          $Summary = "Code analysis found $($Levels.ForEach({ "$($_.Count) $($_.Name)s" }) -join ', ')"
+          if ($Levels.Name -contains 'error') {
+            Write-Error -Message $Summary -ErrorAction Stop
+          } elseif ($Levels.Count -gt 0) {
+            Write-Warning -Message $Summary
+          }
 
-      - name: Upload SARIF results file
+      - name: Upload SARIF results
+        if: ${{ always() }}
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
