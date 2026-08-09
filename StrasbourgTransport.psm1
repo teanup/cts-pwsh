@@ -21,7 +21,7 @@ $ExportableTypes = $ExportableTypes | ForEach-Object {
     $TypeAcceleratorsClass::Add($_.FullName, $_)
     $_
   } else {
-    Write-Warning -Message "StrasbourgTransport: Type accelerator already exists for type '$($_.FullName)'"
+    Write-Warning -Message "Type accelerator already exists for type '$($_.FullName)'"
   }
 }
 $MyInvocation.MyCommand.ScriptBlock.Module.OnRemove = {
@@ -37,4 +37,8 @@ if ($null -eq (Get-CtsApiToken)) {
 }
 
 # Pre-load stop cache
-Update-CtsStopCache -ErrorAction SilentlyContinue
+try {
+  Update-CtsStopCache
+} catch {
+  Write-Verbose -Message "Failed to pre-load cache: $_"
+}

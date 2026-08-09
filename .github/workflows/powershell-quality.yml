@@ -22,12 +22,15 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Run PSScriptAnalyzer
-        uses: microsoft/psscriptanalyzer-action@v1.1
-        with:
-          recurse: true
-          output: results.sarif
+        shell: pwsh
+        run: |
+          Import-Module -Name PSScriptAnalyzer, ./.tests/ScriptAnalyzer.Sarif
+          $Sarif = Invoke-ScriptAnalyzer -Path . -Recurse -Settings .tests/CodeFormatting.psd1 |
+            Sort-Object -Property ScriptPath, Line, Severity, RuleName, Message | ConvertTo-Sarif
+          $Sarif | ConvertTo-Json -Depth 100 -Compress | Set-Content results.sarif
+          $Sarif | Show-GitHubAnnotation -Path .
 
-      - name: Upload SARIF results file
+      - name: Upload SARIF results
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
